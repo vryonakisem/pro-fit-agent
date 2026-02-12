@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, TrendingUp, Brain, Target, Plus, ChevronLeft, ChevronRight,
-  X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon
+  X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
@@ -414,7 +414,7 @@ const ProFitAgentV5 = () => {
           {activeScreen === 'calendar' && <CalendarScreen plannedSessions={plannedSessions} />}
           {activeScreen === 'log' && <LogScreen onLogTraining={handleLogTraining} onLogBody={handleLogBody} setActiveScreen={setActiveScreen} />}
           {activeScreen === 'plan' && <PlanScreen plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} onboarding={onboardingData} />}
-          {activeScreen === 'coach' && <CoachPlaceholder />}
+          {activeScreen === 'coach' && <CoachScreen onboarding={onboardingData} plan={plan} plannedSessions={plannedSessions} trainingSessions={trainingSessions} bodyMetrics={bodyMetrics} />}
         </div>
         <BottomNav activeTab={activeScreen} setActiveTab={setActiveScreen} />
       </div>
@@ -1020,22 +1020,290 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding }: a
 // COACH PLACEHOLDER
 // ============================================================================
 
-const CoachPlaceholder = () => (
-  <div className="p-4">
-    <div className="bg-white rounded-lg shadow p-8 text-center">
-      <Brain className="mx-auto mb-4 text-purple-400" size={48} />
-      <h2 className="text-xl font-bold text-gray-900 mb-2">AI Coach</h2>
-      <p className="text-gray-500 mb-4">Coming soon — your personal AI training coach will analyze your performance and give tailored advice.</p>
-      <div className="bg-purple-50 rounded-lg p-4 text-left text-sm text-purple-800">
-        <p className="font-semibold mb-2">What to expect:</p>
-        <p className="mb-1">• Training load analysis and recovery recommendations</p>
-        <p className="mb-1">• Weekly plan adjustments based on your progress</p>
-        <p className="mb-1">• Goal realism checks as fitness evolves</p>
-        <p>• Personalized session suggestions</p>
+// ============================================================================
+// COACH SCREEN — AI Chat + Weekly Summary
+// ============================================================================
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+const CoachScreen = ({ onboarding, plan, plannedSessions, trainingSessions, bodyMetrics }: any) => {
+  const [activeTab, setActiveTab] = useState<'chat' | 'summary'>('summary');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => { scrollToBottom(); }, [messages]);
+
+  const buildAthleteContext = () => {
+    const today = new Date();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+
+    const thisWeekPlanned = plannedSessions.filter((p: PlannedSession) => new Date(p.date) >= weekStart);
+    const completed = thisWeekPlanned.filter((p: PlannedSession) => p.status === 'completed').length;
+    const skipped = thisWeekPlanned.filter((p: PlannedSession) => p.status === 'skipped').length;
+    const total = thisWeekPlanned.length;
+
+    const thisWeekTraining = trainingSessions.filter((t: TrainingSession) => new Date(t.date) >= weekStart);
+    const swimDistance = thisWeekTraining.filter((t: TrainingSession) => t.sport === 'Swim').reduce((s: number, t: TrainingSession) => s + t.distance, 0);
+    const bikeDistance = thisWeekTraining.filter((t: TrainingSession) => t.sport === 'Bike').reduce((s: number, t: TrainingSession) => s + t.distance, 0);
+    const runDistance = thisWeekTraining.filter((t: TrainingSession) => t.sport === 'Run').reduce((s: number, t: TrainingSession) => s + t.distance, 0);
+    const totalMinutes = thisWeekTraining.reduce((s: number, t: TrainingSession) => s + t.duration, 0);
+
+    return {
+      onboarding,
+      plan,
+      weekStats: {
+        completed, skipped, total,
+        compliancePercent: total > 0 ? Math.round((completed / total) * 100) : 0,
+        swimDistance, bikeDistance, runDistance, totalMinutes,
+      },
+      recentBody: bodyMetrics.slice(0, 5),
+      recentSessions: trainingSessions.slice(0, 7),
+    };
+  };
+
+  const callCoachAPI = async (mode: 'chat' | 'summary', userMessage?: string) => {
+    const context = buildAthleteContext();
+    try {
+      const response = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, userMessage, athleteContext: context }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to get coach response');
+      }
+
+      const data = await response.json();
+      return data.message;
+    } catch (err: any) {
+      console.error('Coach API error:', err);
+      throw err;
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || loading) return;
+    const userMsg: ChatMessage = { role: 'user', content: input.trim(), timestamp: new Date().toISOString() };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    setLoading(true);
+
+    try {
+      const reply = await callCoachAPI('chat', userMsg.content);
+      const assistantMsg: ChatMessage = { role: 'assistant', content: reply, timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, assistantMsg]);
+    } catch (err: any) {
+      const errorMsg: ChatMessage = { role: 'assistant', content: `Sorry, I couldn\u2019t connect right now. ${err.message || 'Please try again.'}`, timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, errorMsg]);
+    }
+    setLoading(false);
+  };
+
+  const handleGenerateSummary = async () => {
+    setSummaryLoading(true);
+    setSummary(null);
+    try {
+      const result = await callCoachAPI('summary');
+      setSummary(result);
+    } catch (err: any) {
+      setSummary(`Could not generate summary: ${err.message || 'Please try again.'}`);
+    }
+    setSummaryLoading(false);
+  };
+
+  const quickQuestions = [
+    "How is my training going?",
+    "Am I on track for my race goal?",
+    "What should I focus on this week?",
+    "Should I take a rest day?",
+    "How can I improve my swim?",
+  ];
+
+  return (
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 140px)' }}>
+      {/* Tab Switcher */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex gap-2">
+          <button onClick={() => setActiveTab('summary')}
+            className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${activeTab === 'summary' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+            <TrendingUp size={16} /> Weekly Summary
+          </button>
+          <button onClick={() => setActiveTab('chat')}
+            className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${activeTab === 'chat' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+            <Brain size={16} /> Chat with Coach
+          </button>
+        </div>
       </div>
+
+      {/* Summary Tab */}
+      {activeTab === 'summary' && (
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          <div className="bg-white rounded-lg shadow p-4 mb-3">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-lg flex items-center gap-2"><Brain size={20} className="text-purple-500" /> AI Coach Summary</h3>
+              <button onClick={handleGenerateSummary} disabled={summaryLoading}
+                className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+                {summaryLoading ? <Loader className="animate-spin" size={14} /> : <RefreshCw size={14} />}
+                {summaryLoading ? 'Generating...' : summary ? 'Refresh' : 'Generate'}
+              </button>
+            </div>
+
+            {!summary && !summaryLoading && (
+              <div className="text-center py-8 text-gray-400">
+                <Brain className="mx-auto mb-3 text-purple-300" size={40} />
+                <p className="text-sm mb-1">Click "Generate" to get your personalised weekly summary</p>
+                <p className="text-xs text-gray-400">The AI coach will analyse your training data and give recommendations</p>
+              </div>
+            )}
+
+            {summaryLoading && (
+              <div className="text-center py-8">
+                <Loader className="animate-spin mx-auto mb-3 text-purple-400" size={32} />
+                <p className="text-sm text-gray-500">Analysing your training data...</p>
+              </div>
+            )}
+
+            {summary && !summaryLoading && (
+              <div className="prose prose-sm max-w-none">
+                {summary.split('\n').map((line: string, i: number) => {
+                  if (line.startsWith('**') && line.endsWith('**')) {
+                    return <h4 key={i} className="font-bold text-gray-900 mt-3 mb-1">{line.replace(/\*\*/g, '')}</h4>;
+                  }
+                  if (line.startsWith('- ')) {
+                    return <p key={i} className="text-sm text-gray-700 ml-3 mb-1">\u2022 {line.slice(2)}</p>;
+                  }
+                  if (line.trim() === '') return <div key={i} className="h-2" />;
+                  // Handle inline bold
+                  const parts = line.split(/(\*\*.*?\*\*)/g);
+                  return (
+                    <p key={i} className="text-sm text-gray-700 mb-1">
+                      {parts.map((part: string, j: number) =>
+                        part.startsWith('**') && part.endsWith('**')
+                          ? <strong key={j}>{part.replace(/\*\*/g, '')}</strong>
+                          : part
+                      )}
+                    </p>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Quick Stats Card */}
+          <div className="bg-purple-50 rounded-lg p-4">
+            <h4 className="font-semibold text-sm text-purple-800 mb-2">Your Data Snapshot</h4>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-white rounded p-2"><span className="text-gray-500">Sessions logged:</span> <span className="font-bold">{trainingSessions.length}</span></div>
+              <div className="bg-white rounded p-2"><span className="text-gray-500">Planned:</span> <span className="font-bold">{plannedSessions.length}</span></div>
+              <div className="bg-white rounded p-2"><span className="text-gray-500">Body entries:</span> <span className="font-bold">{bodyMetrics.length}</span></div>
+              <div className="bg-white rounded p-2"><span className="text-gray-500">Phase:</span> <span className="font-bold">{plan?.phase || 'N/A'}</span></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Tab */}
+      {activeTab === 'chat' && (
+        <>
+          <div className="flex-1 overflow-y-auto px-4 pb-2">
+            {messages.length === 0 && (
+              <div className="text-center py-6">
+                <Brain className="mx-auto mb-3 text-purple-300" size={40} />
+                <p className="text-sm text-gray-500 mb-4">Ask your AI coach anything about your training</p>
+                <div className="space-y-2">
+                  {quickQuestions.map((q, i) => (
+                    <button key={i} onClick={() => { setInput(q); }}
+                      className="w-full text-left px-3 py-2 bg-purple-50 rounded-lg text-sm text-purple-700 hover:bg-purple-100 transition-colors">
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {messages.map((msg, i) => (
+              <div key={i} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                  msg.role === 'user'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white shadow text-gray-800'
+                }`}>
+                  {msg.role === 'assistant' ? (
+                    <div className="text-sm">
+                      {msg.content.split('\n').map((line: string, j: number) => {
+                        if (line.trim() === '') return <div key={j} className="h-1" />;
+                        const parts = line.split(/(\*\*.*?\*\*)/g);
+                        return (
+                          <p key={j} className="mb-1">
+                            {parts.map((part: string, k: number) =>
+                              part.startsWith('**') && part.endsWith('**')
+                                ? <strong key={k}>{part.replace(/\*\*/g, '')}</strong>
+                                : part
+                            )}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm">{msg.content}</p>
+                  )}
+                  <div className={`text-xs mt-1 ${msg.role === 'user' ? 'text-purple-200' : 'text-gray-400'}`}>
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {loading && (
+              <div className="flex justify-start mb-3">
+                <div className="bg-white shadow rounded-lg px-4 py-3 flex items-center gap-2">
+                  <Loader className="animate-spin text-purple-400" size={16} />
+                  <span className="text-sm text-gray-500">Coach is thinking...</span>
+                </div>
+              </div>
+            )}
+
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Chat Input */}
+          <div className="px-4 pb-3 pt-2 border-t bg-white">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Ask your coach..."
+                className="flex-1 p-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                disabled={loading}
+              />
+              <button onClick={handleSendMessage} disabled={loading || !input.trim()}
+                className="bg-purple-600 text-white px-4 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center">
+                <Send size={18} />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 // ============================================================================
 // BOTTOM NAV
