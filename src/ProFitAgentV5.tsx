@@ -1889,6 +1889,7 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
     setSaving(true);
     const updatedOnboarding = { ...onboarding, ...form };
     const dbData = onboardingToDb(updatedOnboarding, user.id);
+    console.log('Saving profile data:', JSON.stringify(dbData));
     const { error } = await safeQuery(
       () => supabase.from('onboarding_data').upsert(dbData, { onConflict: 'user_id' }),
       'updateProfile'
@@ -1898,7 +1899,8 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
       showToast('Profile updated!', 'success');
       setEditing(false);
     } else {
-      showToast('Failed to save', 'error');
+      console.error('Save error:', error);
+      showToast('Failed to save: ' + error, 'error');
     }
     setSaving(false);
   };
