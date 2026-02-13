@@ -13,11 +13,20 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
 
   try {
-    const { mode, userMessage, athleteContext } = req.body;
+    const { mode, userMessage, athleteContext, chatHistory } = req.body;
     const systemPrompt = buildSystemPrompt(athleteContext, mode);
 
+    // Build messages array with conversation history
     const messages = [];
-    if (mode === 'summary') {
+
+    if (mode === 'chat' && chatHistory && chatHistory.length > 0) {
+      // Include last 20 messages for context
+      for (const msg of chatHistory.slice(-20)) {
+        messages.push({ role: msg.role, content: msg.content });
+      }
+      // Add current message
+      messages.push({ role: 'user', content: userMessage || 'How is my training going?' });
+    } else if (mode === 'summary') {
       messages.push({ role: 'user', content: 'Generate my weekly training summary and recommendations based on my data.' });
     } else if (mode === 'nutrition') {
       messages.push({ role: 'user', content: 'Generate a detailed daily meal plan for today based on my training, weight, and goals. Include specific meals with approximate macros.' });
@@ -72,6 +81,7 @@ function buildSystemPrompt(ctx, mode) {
     `You are an expert triathlon coach and sports nutritionist AI inside the "Pro Fit Agent" app. You coach athletes preparing for Ironman 70.3 races.`,
     `Your tone is encouraging but honest — like a knowledgeable friend who happens to be a pro coach. Use short paragraphs. Use emoji sparingly (1-2 per response max).`,
     `Keep responses concise (under 250 words for chat, under 400 words for summaries, under 500 words for meal plans).`,
+    `IMPORTANT: You have access to the athlete's real training data below. Always reference their actual numbers, planned sessions, and metrics. Never make up or guess data — use only what is provided.`,
   ];
 
   if (ctx.onboarding) {
@@ -94,6 +104,21 @@ function buildSystemPrompt(ctx, mode) {
     sections.push(`\n--- CURRENT PLAN ---`);
     sections.push(`Phase: ${p.phase}`);
     sections.push(`Weekly targets: ${p.weekly_swim_sessions} swims, ${p.weekly_bike_km}km bike, ${p.weekly_run_km}km run, ${p.weekly_strength_sessions} strength`);
+  }
+
+  // TODAY'S PLAN - most important context
+  if (ctx.plannedSessionsList && ctx.plannedSessionsList.length > 0) {
+    const today = new Date().toISOString().split('T')[0];
+    const todaySessions = ctx.plannedSessionsList.filter(s => s.date === today);
+    if (todaySessions.length > 0) {
+      sections.push(`\n--- TODAY'S PLANNED SESSIONS (${today}) ---`);
+      todaySessions.forEach(s => {
+        sections.push(`ID:${s.id} | ${s.sport} ${s.type} — ${s.duration}min, ${s.distance || 0}${s.sport === 'Swim' ? 'm' : 'km'}, ${s.intensity}, status:${s.status}${s.description ? ' | ' + s.description : ''}`);
+      });
+    } else {
+      sections.push(`\n--- TODAY (${today}) ---`);
+      sections.push(`Rest day — no sessions planned for today.`);
+    }
   }
 
   if (ctx.weekStats) {
@@ -153,11 +178,12 @@ function buildSystemPrompt(ctx, mode) {
   } else {
     sections.push(`\n--- TASK ---`);
     sections.push(`Answer the athlete's question using their training data. Be specific and actionable. Reference their actual numbers when possible.`);
+    sections.push(`CRITICAL: When the athlete asks about today's training, ONLY refer to the TODAY'S PLANNED SESSIONS section above. Do not invent sessions.`);
     if (ctx.canModifyPlan) {
       sections.push(`\nYou can modify the training plan if the athlete asks. When making changes, include a JSON block at the end:`);
       sections.push(`[PLAN_CHANGES][{"action":"skip","sessionId":"<id>"},{"action":"add","date":"YYYY-MM-DD","sport":"Run","type":"Z2","duration":40,"distance":6,"intensity":"Easy","description":"Easy recovery run"}][/PLAN_CHANGES]`);
       sections.push(`Only include [PLAN_CHANGES] when the athlete explicitly asks to change their plan. Available actions: skip, add, reschedule (with newDate).`);
-      sections.push(`When skipping, use the session ID from the UPCOMING PLANNED SESSIONS list.`);
+      sections.push(`When skipping or rescheduling, use the session ID from the UPCOMING PLANNED SESSIONS list.`);
     }
   }
 

@@ -1428,6 +1428,7 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [chatLoaded, setChatLoaded] = useState(false);
   const chatEndRef = React.useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -1435,6 +1436,45 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
   };
 
   useEffect(() => { scrollToBottom(); }, [messages]);
+
+  // Load saved chat history on mount
+  useEffect(() => {
+    const loadChat = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from('coach_messages')
+          .select('role, content, timestamp')
+          .eq('user_id', user.id)
+          .order('timestamp', { ascending: true })
+          .limit(50);
+        if (data && data.length > 0) {
+          setMessages(data.map((m: any) => ({ role: m.role, content: m.content, timestamp: m.timestamp })));
+        }
+      } catch (err) {
+        console.error('Failed to load chat history:', err);
+      }
+      setChatLoaded(true);
+    };
+    loadChat();
+  }, []);
+
+  // Save messages to Supabase when they change
+  const saveMessage = async (msg: ChatMessage) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('coach_messages').insert({
+        user_id: user.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+      });
+    } catch (err) {
+      console.error('Failed to save message:', err);
+    }
+  };
 
   const buildAthleteContext = () => {
     const today = new Date();
@@ -1469,11 +1509,13 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
   const callCoachAPI = async (mode: 'chat' | 'summary', userMessage?: string) => {
     const context = buildAthleteContext();
     context.canModifyPlan = true;
+    // Send conversation history so coach remembers the chat
+    const chatHistory = messages.slice(-20).map(m => ({ role: m.role, content: m.content }));
     try {
       const response = await fetch('/api/coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, userMessage, athleteContext: context }),
+        body: JSON.stringify({ mode, userMessage, athleteContext: context, chatHistory }),
       });
 
       if (!response.ok) {
@@ -1517,6 +1559,7 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
     if (!input.trim() || loading) return;
     const userMsg: ChatMessage = { role: 'user', content: input.trim(), timestamp: new Date().toISOString() };
     setMessages(prev => [...prev, userMsg]);
+    saveMessage(userMsg);
     setInput('');
     setLoading(true);
 
@@ -1524,6 +1567,7 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
       const reply = await callCoachAPI('chat', userMsg.content);
       const assistantMsg: ChatMessage = { role: 'assistant', content: reply, timestamp: new Date().toISOString() };
       setMessages(prev => [...prev, assistantMsg]);
+      saveMessage(assistantMsg);
     } catch (err: any) {
       const errorMsg: ChatMessage = { role: 'assistant', content: `Sorry, I couldn\u2019t connect right now. ${err.message || 'Please try again.'}`, timestamp: new Date().toISOString() };
       setMessages(prev => [...prev, errorMsg]);
@@ -1945,13 +1989,121 @@ interface MealEntry {
   fat: number;
 }
 
+interface DailyHabit {
+  id?: string;
+  name: string;
+  icon: string;
+  completed: boolean;
+  date: string;
+}
+
 const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
-  const [activeTab, setActiveTab] = useState<'plan' | 'log'>('plan');
+  const [activeTab, setActiveTab] = useState<'habits' | 'plan' | 'log'>('habits');
   const [mealPlan, setMealPlan] = useState<string | null>(null);
   const [mealPlanLoading, setMealPlanLoading] = useState(false);
   const [todayMeals, setTodayMeals] = useState<MealEntry[]>([]);
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [mealForm, setMealForm] = useState<MealEntry>({ meal: 'Breakfast', food: '', calories: 0, protein: 0, carbs: 0, fat: 0 });
+  const [habits, setHabits] = useState<DailyHabit[]>([]);
+  const [showAddHabit, setShowAddHabit] = useState(false);
+  const [newHabitName, setNewHabitName] = useState('');
+  const [newHabitIcon, setNewHabitIcon] = useState('💧');
+  const [habitsLoaded, setHabitsLoaded] = useState(false);
+
+  const today = new Date().toISOString().split('T')[0];
+
+  // Default habits for first-time use
+  const defaultHabits: Omit<DailyHabit, 'id'>[] = [
+    { name: 'Drink 2L water', icon: '💧', completed: false, date: today },
+    { name: 'Take creatine', icon: '💊', completed: false, date: today },
+    { name: 'Take collagen', icon: '🦴', completed: false, date: today },
+    { name: 'Eat 120g+ protein', icon: '🥩', completed: false, date: today },
+    { name: 'Take vitamins', icon: '💉', completed: false, date: today },
+    { name: 'Stretch / mobility', icon: '🧘', completed: false, date: today },
+  ];
+
+  // Load habits from Supabase
+  useEffect(() => {
+    const loadHabits = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Load today's habits
+        const { data } = await supabase
+          .from('daily_habits')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .order('created_at');
+
+        if (data && data.length > 0) {
+          setHabits(data);
+        } else {
+          // Check if user has habit templates (from any previous day)
+          const { data: templates } = await supabase
+            .from('daily_habits')
+            .select('name, icon')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false })
+            .limit(20);
+
+          if (templates && templates.length > 0) {
+            // Use unique habits from previous days as templates
+            const seen = new Set<string>();
+            const uniqueTemplates = templates.filter(t => { if (seen.has(t.name)) return false; seen.add(t.name); return true; });
+            const todayHabits = uniqueTemplates.map(t => ({
+              name: t.name, icon: t.icon, completed: false, date: today,
+            }));
+            // Insert today's habits
+            const { data: inserted } = await supabase.from('daily_habits').insert(
+              todayHabits.map(h => ({ ...h, user_id: user.id }))
+            ).select();
+            if (inserted) setHabits(inserted);
+          } else {
+            // First time — use defaults
+            const { data: inserted } = await supabase.from('daily_habits').insert(
+              defaultHabits.map(h => ({ ...h, user_id: user.id }))
+            ).select();
+            if (inserted) setHabits(inserted);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load habits:', err);
+      }
+      setHabitsLoaded(true);
+    };
+    loadHabits();
+  }, []);
+
+  const toggleHabit = async (habitId: string) => {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+    const newCompleted = !habit.completed;
+    setHabits(prev => prev.map(h => h.id === habitId ? { ...h, completed: newCompleted } : h));
+    await supabase.from('daily_habits').update({ completed: newCompleted }).eq('id', habitId);
+  };
+
+  const addHabit = async () => {
+    if (!newHabitName.trim()) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: inserted } = await supabase.from('daily_habits').insert({
+      user_id: user.id, name: newHabitName.trim(), icon: newHabitIcon, completed: false, date: today,
+    }).select().single();
+    if (inserted) setHabits(prev => [...prev, inserted]);
+    setNewHabitName('');
+    setNewHabitIcon('💧');
+    setShowAddHabit(false);
+  };
+
+  const deleteHabit = async (habitId: string) => {
+    setHabits(prev => prev.filter(h => h.id !== habitId));
+    await supabase.from('daily_habits').delete().eq('id', habitId);
+  };
+
+  const completedCount = habits.filter(h => h.completed).length;
+  const habitProgress = habits.length > 0 ? Math.round((completedCount / habits.length) * 100) : 0;
 
   const totalCals = todayMeals.reduce((s, m) => s + m.calories, 0);
   const totalProtein = todayMeals.reduce((s, m) => s + m.protein, 0);
@@ -1999,15 +2151,98 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
   return (
     <div className="p-4 space-y-4">
       <div className="flex gap-2">
+        <button onClick={() => setActiveTab('habits')}
+          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-1 ${activeTab === 'habits' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          ✅ Habits
+        </button>
         <button onClick={() => setActiveTab('plan')}
-          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${activeTab === 'plan' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
-          <Brain size={16} /> AI Meal Plan
+          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-1 ${activeTab === 'plan' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          <Brain size={14} /> Meal Plan
         </button>
         <button onClick={() => setActiveTab('log')}
-          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${activeTab === 'log' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
-          <UtensilsCrossed size={16} /> Food Log
+          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-1 ${activeTab === 'log' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          <UtensilsCrossed size={14} /> Food Log
         </button>
       </div>
+
+      {/* DAILY HABITS TAB */}
+      {activeTab === 'habits' && (
+        <div className="space-y-3">
+          {/* Progress bar */}
+          <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-bold text-sm">Today's Habits</h3>
+              <span className="text-sm font-bold">{completedCount}/{habits.length}</span>
+            </div>
+            <div className="w-full bg-white bg-opacity-30 rounded-full h-3">
+              <div className="bg-white rounded-full h-3 transition-all duration-500" style={{ width: `${habitProgress}%` }} />
+            </div>
+            <div className="text-xs mt-1 opacity-80">{habitProgress}% complete</div>
+          </div>
+
+          {/* Habits checklist */}
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            {habits.map((habit) => (
+              <div key={habit.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 active:bg-gray-50">
+                <button onClick={() => toggleHabit(habit.id!)}
+                  className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+                    habit.completed ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-transparent hover:border-green-400'
+                  }`}>
+                  <Check size={16} />
+                </button>
+                <span className="text-xl">{habit.icon}</span>
+                <span className={`flex-1 text-sm font-medium ${habit.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                  {habit.name}
+                </span>
+                <button onClick={() => deleteHabit(habit.id!)} className="text-gray-300 hover:text-red-400 p-1">
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+
+            {habits.length === 0 && habitsLoaded && (
+              <div className="text-center py-8 text-gray-400">
+                <p className="text-sm">No habits yet. Add your first one!</p>
+              </div>
+            )}
+          </div>
+
+          {/* Add habit form */}
+          {showAddHabit ? (
+            <div className="bg-white rounded-lg shadow p-4 space-y-3">
+              <h3 className="font-bold text-sm">Add Habit</h3>
+              <div className="flex gap-2">
+                <div className="flex gap-1 flex-wrap">
+                  {['💧', '💊', '🦴', '🥩', '🥗', '🧘', '😴', '☀️', '🏃', '💪', '🧊', '📖'].map(emoji => (
+                    <button key={emoji} onClick={() => setNewHabitIcon(emoji)}
+                      className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center ${newHabitIcon === emoji ? 'bg-green-100 ring-2 ring-green-500' : 'bg-gray-100'}`}>
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <input value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)}
+                placeholder="e.g. Drink 2L water, Take creatine..."
+                className="w-full p-3 border rounded-lg text-sm"
+                onKeyDown={(e) => e.key === 'Enter' && addHabit()} />
+              <div className="flex gap-2">
+                <button onClick={() => setShowAddHabit(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-semibold text-sm">Cancel</button>
+                <button onClick={addHabit} className="flex-1 py-2 bg-green-600 text-white rounded-lg font-semibold text-sm">Add</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowAddHabit(true)}
+              className="w-full py-3 bg-white rounded-lg shadow text-sm font-semibold text-green-600 flex items-center justify-center gap-2 hover:bg-green-50">
+              <Plus size={16} /> Add Habit
+            </button>
+          )}
+
+          {/* Quick tip */}
+          <div className="bg-green-50 rounded-lg p-3 text-xs text-green-800">
+            💡 Habits reset daily. Your list carries over from yesterday — just tick them off each day. Ask the AI Coach to suggest habits for your training phase!
+          </div>
+        </div>
+      )}
 
       {activeTab === 'plan' && (
         <div className="space-y-3">
