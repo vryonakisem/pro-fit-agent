@@ -243,11 +243,11 @@ const calThemes = {
     dayCompleted: 'text-emerald-300', daySkipped: 'text-gray-600',
     cellCompleted: 'bg-gray-800 ring-2 ring-emerald-400', cellPartial: 'bg-gray-800 ring-2 ring-yellow-400',
     cellPlanned: 'bg-gray-800 ring-1 ring-gray-600', cellPlannedFuture: 'bg-gray-900 ring-1 ring-gray-700',
-    cellSkipped: 'bg-gray-900 ring-1 ring-gray-700', cellRest: 'bg-gray-900 bg-opacity-30',
-    dotSkipped: 'bg-gray-700', dotPlanned: 'bg-gray-500',
+    cellSkipped: 'bg-gray-900 ring-1 ring-gray-700', cellCancelled: 'bg-amber-950 ring-1 ring-amber-700', cellRest: 'bg-gray-900 bg-opacity-30',
+    dotSkipped: 'bg-gray-700', dotCancelled: 'bg-amber-700', dotPlanned: 'bg-gray-500',
     detailBg: 'bg-gray-900', detailTitle: 'text-gray-300', detailRestText: 'text-gray-600',
-    sessionBg: 'bg-gray-800', sessionText: 'text-white', sessionSkippedText: 'text-gray-500', sessionMeta: 'text-gray-400',
-    badgeCompleted: 'bg-emerald-900 text-emerald-300', badgeSkipped: 'bg-gray-700 text-gray-400', badgePlanned: 'bg-blue-900 text-blue-300',
+    sessionBg: 'bg-gray-800', sessionText: 'text-white', sessionSkippedText: 'text-gray-500', sessionCancelledText: 'text-amber-400', sessionMeta: 'text-gray-400',
+    badgeCompleted: 'bg-emerald-900 text-emerald-300', badgeSkipped: 'bg-gray-700 text-gray-400', badgeCancelled: 'bg-amber-900 text-amber-300', badgePlanned: 'bg-blue-900 text-blue-300',
     swimIcon: 'bg-cyan-900', bikeIcon: 'bg-emerald-900', runIcon: 'bg-rose-900', strengthIcon: 'bg-violet-900',
   },
   light: {
@@ -257,11 +257,11 @@ const calThemes = {
     dayCompleted: 'text-emerald-600', daySkipped: 'text-gray-400',
     cellCompleted: 'bg-emerald-50 ring-2 ring-emerald-400', cellPartial: 'bg-yellow-50 ring-2 ring-yellow-400',
     cellPlanned: 'bg-white ring-1 ring-gray-300', cellPlannedFuture: 'bg-gray-100 ring-1 ring-gray-200',
-    cellSkipped: 'bg-gray-100 ring-1 ring-gray-200', cellRest: 'bg-white bg-opacity-50',
-    dotSkipped: 'bg-gray-300', dotPlanned: 'bg-gray-400',
+    cellSkipped: 'bg-gray-100 ring-1 ring-gray-200', cellCancelled: 'bg-amber-50 ring-1 ring-amber-300', cellRest: 'bg-white bg-opacity-50',
+    dotSkipped: 'bg-gray-300', dotCancelled: 'bg-amber-400', dotPlanned: 'bg-gray-400',
     detailBg: 'bg-white shadow-sm', detailTitle: 'text-gray-700', detailRestText: 'text-gray-400',
-    sessionBg: 'bg-gray-50', sessionText: 'text-gray-900', sessionSkippedText: 'text-gray-400', sessionMeta: 'text-gray-500',
-    badgeCompleted: 'bg-emerald-100 text-emerald-700', badgeSkipped: 'bg-gray-200 text-gray-500', badgePlanned: 'bg-blue-100 text-blue-700',
+    sessionBg: 'bg-gray-50', sessionText: 'text-gray-900', sessionSkippedText: 'text-gray-400', sessionCancelledText: 'text-amber-600', sessionMeta: 'text-gray-500',
+    badgeCompleted: 'bg-emerald-100 text-emerald-700', badgeSkipped: 'bg-gray-200 text-gray-500', badgeCancelled: 'bg-amber-100 text-amber-700', badgePlanned: 'bg-blue-100 text-blue-700',
     swimIcon: 'bg-cyan-100', bikeIcon: 'bg-emerald-100', runIcon: 'bg-rose-100', strengthIcon: 'bg-violet-100',
   },
 };
@@ -1062,7 +1062,7 @@ const HomeScreen = ({ user, onboarding, plan, projection, realism, plannedSessio
   const actualSwim = thisWeekTraining.filter((t: TrainingSession) => t.sport === 'Swim').reduce((s: number, t: TrainingSession) => s + t.distance, 0);
   const actualBike = thisWeekTraining.filter((t: TrainingSession) => t.sport === 'Bike').reduce((s: number, t: TrainingSession) => s + t.distance, 0);
   const actualRun = thisWeekTraining.filter((t: TrainingSession) => t.sport === 'Run').reduce((s: number, t: TrainingSession) => s + t.distance, 0);
-  const thisWeekPlanned = plannedSessions.filter((p: PlannedSession) => new Date(p.date) >= weekStart);
+  const thisWeekPlanned = plannedSessions.filter((p: PlannedSession) => new Date(p.date) >= weekStart && p.status !== 'cancelled');
   const completed = thisWeekPlanned.filter((p: PlannedSession) => p.status === 'completed').length;
   const total = thisWeekPlanned.length;
   const compliance = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -1165,10 +1165,13 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
   const getDayStatus = (dateStr: string) => {
     const sessions = plannedSessions.filter((s: PlannedSession) => s.date === dateStr);
     if (sessions.length === 0) return { type: 'rest', sessions: [], sports: [] as string[] };
-    const allCompleted = sessions.every((s: PlannedSession) => s.status === 'completed');
-    const allSkipped = sessions.every((s: PlannedSession) => s.status === 'skipped');
-    const someCompleted = sessions.some((s: PlannedSession) => s.status === 'completed');
+    const activeSessions = sessions.filter((s: PlannedSession) => s.status !== 'cancelled');
+    const allCancelled = sessions.every((s: PlannedSession) => s.status === 'cancelled');
+    const allCompleted = activeSessions.length > 0 && activeSessions.every((s: PlannedSession) => s.status === 'completed');
+    const allSkipped = activeSessions.length > 0 && activeSessions.every((s: PlannedSession) => s.status === 'skipped');
+    const someCompleted = activeSessions.some((s: PlannedSession) => s.status === 'completed');
     const sports = [...new Set(sessions.map((s: PlannedSession) => s.sport))] as string[];
+    if (allCancelled) return { type: 'cancelled', sports, sessions };
     if (allCompleted) return { type: 'completed', sports, sessions };
     if (allSkipped) return { type: 'skipped', sports, sessions };
     if (someCompleted) return { type: 'partial', sports, sessions };
@@ -1241,8 +1244,8 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
                 const isFuture = new Date(dateStr) > new Date();
                 const { type, sports } = getDayStatus(dateStr);
                 const hasMilestone = milestones?.some((m: Milestone) => m.date === dateStr);
-                const cellClass = type === 'completed' ? t.cellCompleted : type === 'partial' ? t.cellPartial : type === 'skipped' ? t.cellSkipped : type === 'planned' && isFuture ? t.cellPlannedFuture : type === 'planned' ? t.cellPlanned : t.cellRest;
-                const textClass = isToday ? (isDark ? 'text-white' : 'text-blue-600 font-black') : type === 'completed' ? t.dayCompleted : type === 'skipped' ? t.daySkipped : isFuture ? t.dayFuture : t.dayDefault;
+                const cellClass = type === 'completed' ? t.cellCompleted : type === 'partial' ? t.cellPartial : type === 'skipped' ? t.cellSkipped : type === 'cancelled' ? t.cellCancelled : type === 'planned' && isFuture ? t.cellPlannedFuture : type === 'planned' ? t.cellPlanned : t.cellRest;
+                const textClass = isToday ? (isDark ? 'text-white' : 'text-blue-600 font-black') : type === 'completed' ? t.dayCompleted : type === 'skipped' ? t.daySkipped : type === 'cancelled' ? (isDark ? 'text-amber-400' : 'text-amber-600') : isFuture ? t.dayFuture : t.dayDefault;
 
                 return (
                   <button key={dateStr} onClick={() => setSelectedDate(dateStr)}
@@ -1251,7 +1254,7 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
                     {sports && sports.length > 0 && (
                       <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center">
                         {sports.slice(0, 3).map((sport: string, i: number) => (
-                          <span key={i} className={`text-[7px] font-bold px-1 rounded ${type === 'skipped' ? 'text-gray-400' : sport === 'Swim' ? 'text-cyan-600 bg-cyan-100' : sport === 'Bike' ? 'text-emerald-600 bg-emerald-100' : sport === 'Run' ? 'text-rose-600 bg-rose-100' : 'text-violet-600 bg-violet-100'}`}>
+                          <span key={i} className={`text-[7px] font-bold px-1 rounded ${type === 'skipped' ? 'text-gray-400' : type === 'cancelled' ? 'text-amber-500 bg-amber-100' : sport === 'Swim' ? 'text-cyan-600 bg-cyan-100' : sport === 'Bike' ? 'text-emerald-600 bg-emerald-100' : sport === 'Run' ? 'text-rose-600 bg-rose-100' : 'text-violet-600 bg-violet-100'}`}>
                             {sport === 'Swim' ? 'S' : sport === 'Bike' ? 'B' : sport === 'Run' ? 'R' : 'G'}
                           </span>
                         ))}
@@ -1279,17 +1282,18 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
           ) : (
             <div className="space-y-2">
               {selectedSessions.map((session: PlannedSession) => (
-                <div key={session.id} className={`flex items-center gap-3 p-3 rounded-lg ${t.sessionBg} ${session.status === 'skipped' ? 'opacity-40' : ''} transition-colors duration-300`}>
+                <div key={session.id} className={`flex items-center gap-3 p-3 rounded-lg ${t.sessionBg} ${session.status === 'skipped' ? 'opacity-40' : session.status === 'cancelled' ? 'opacity-60' : ''} transition-colors duration-300`}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${session.sport === 'Swim' ? t.swimIcon : session.sport === 'Bike' ? t.bikeIcon : session.sport === 'Run' ? t.runIcon : t.strengthIcon}`}>
                     {session.sport === 'Swim' ? '🏊' : session.sport === 'Bike' ? '🚴' : session.sport === 'Run' ? '🏃' : '💪'}
                   </div>
                   <div className="flex-1">
-                    <div className={`font-semibold text-sm ${session.status === 'skipped' ? t.sessionSkippedText + ' line-through' : t.sessionText}`}>{session.sport} – {session.type}</div>
+                    <div className={`font-semibold text-sm ${session.status === 'skipped' ? t.sessionSkippedText + ' line-through' : session.status === 'cancelled' ? t.sessionCancelledText + ' line-through' : t.sessionText}`}>{session.sport} – {session.type}</div>
                     <div className={`text-xs ${t.sessionMeta}`}>{session.duration}min{session.distance > 0 ? ` • ${session.distance}${session.sport === 'Swim' ? 'm' : 'km'}` : ''} • {session.intensity}</div>
                   </div>
                   <div>
                     {session.status === 'completed' && <div className={`${t.badgeCompleted} text-xs px-2 py-1 rounded-full font-semibold`}>Done</div>}
                     {session.status === 'skipped' && <div className={`${t.badgeSkipped} text-xs px-2 py-1 rounded-full`}>Skipped</div>}
+                    {session.status === 'cancelled' && <div className={`${t.badgeCancelled} text-xs px-2 py-1 rounded-full`}>Replaced</div>}
                     {session.status === 'planned' && <div className={`${t.badgePlanned} text-xs px-2 py-1 rounded-full`}>Planned</div>}
                   </div>
                 </div>
@@ -1376,11 +1380,13 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
   const weekStart = new Date(weekDates[0]);
   const weekEnd = new Date(weekDates[6]);
   const weekSessions = plannedSessions.filter((s: PlannedSession) => weekDates.includes(s.date));
-  const completed = weekSessions.filter((s: PlannedSession) => s.status === 'completed').length;
-  const skipped = weekSessions.filter((s: PlannedSession) => s.status === 'skipped').length;
-  const planned = weekSessions.filter((s: PlannedSession) => s.status === 'planned').length;
-  const total = weekSessions.length;
-  const totalHours = (weekSessions.reduce((sum: number, s: PlannedSession) => sum + s.duration, 0) / 60).toFixed(1);
+  const activeSessions = weekSessions.filter((s: PlannedSession) => s.status !== 'cancelled');
+  const completed = activeSessions.filter((s: PlannedSession) => s.status === 'completed').length;
+  const skipped = activeSessions.filter((s: PlannedSession) => s.status === 'skipped').length;
+  const cancelled = weekSessions.filter((s: PlannedSession) => s.status === 'cancelled').length;
+  const planned = activeSessions.filter((s: PlannedSession) => s.status === 'planned').length;
+  const total = activeSessions.length;
+  const totalHours = (activeSessions.reduce((sum: number, s: PlannedSession) => sum + s.duration, 0) / 60).toFixed(1);
 
   const sportColor: Record<string, string> = { Swim: 'border-blue-500 bg-blue-50', Bike: 'border-green-500 bg-green-50', Run: 'border-orange-500 bg-orange-50', Strength: 'border-purple-500 bg-purple-50' };
   const sportEmoji: Record<string, string> = { Swim: '🏊', Bike: '🚴', Run: '🏃', Strength: '💪' };
@@ -1422,6 +1428,7 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500"></div>{completed} done</div>
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500"></div>{planned} planned</div>
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-400"></div>{skipped} skipped</div>
+          {cancelled > 0 && <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-400"></div>{cancelled} replaced</div>}
           <div className="ml-auto font-semibold">{totalHours}h</div>
         </div>
         {total > 0 && <div className="w-full bg-gray-200 rounded-full h-2 mb-4"><div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${(completed / total) * 100}%` }} /></div>}
@@ -1437,12 +1444,12 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
                 {daySessions.length === 0 && <span className="text-xs text-gray-400 ml-auto">Rest day</span>}
               </div>
               {daySessions.map((session: PlannedSession) => (
-                <div key={session.id} className={`border-l-4 ${sportColor[session.sport] || 'border-gray-300 bg-gray-50'} p-3 mb-1 rounded-r ${session.status === 'skipped' ? 'opacity-50' : ''}`}>
+                <div key={session.id} className={`border-l-4 ${sportColor[session.sport] || 'border-gray-300 bg-gray-50'} p-3 mb-1 rounded-r ${session.status === 'skipped' ? 'opacity-50' : session.status === 'cancelled' ? 'opacity-40 bg-amber-50 border-amber-400' : ''}`}>
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span>{sportEmoji[session.sport] || '🏋️'}</span>
-                        <span className={`font-semibold ${session.status === 'skipped' ? 'line-through' : ''}`}>{session.sport} – {session.type}</span>
+                        <span className={`font-semibold ${session.status === 'skipped' ? 'line-through' : session.status === 'cancelled' ? 'line-through text-amber-600' : ''}`}>{session.sport} – {session.type}</span>
                         <span className={`text-xs px-2 py-0.5 rounded-full ${intensityColor[session.intensity] || 'bg-gray-100'}`}>{session.intensity}</span>
                       </div>
                       <div className="text-sm text-gray-600 mt-1">{session.description}</div>
@@ -1451,6 +1458,8 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
                     <div className="ml-2">
                       {session.status === 'completed' ? (
                         <div className="flex items-center gap-1 text-green-600"><Check size={16} /><span className="text-xs font-semibold">Done</span></div>
+                      ) : session.status === 'cancelled' ? (
+                        <div className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded font-semibold">Replaced</div>
                       ) : session.status === 'skipped' ? (
                         <button onClick={() => handleSkipSession(session)} className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded hover:bg-gray-300">Undo</button>
                       ) : (
@@ -1542,7 +1551,7 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() - today.getDay());
 
-    const thisWeekPlanned = plannedSessions.filter((p: PlannedSession) => new Date(p.date) >= weekStart);
+    const thisWeekPlanned = plannedSessions.filter((p: PlannedSession) => new Date(p.date) >= weekStart && p.status !== 'cancelled');
     const completed = thisWeekPlanned.filter((p: PlannedSession) => p.status === 'completed').length;
     const skipped = thisWeekPlanned.filter((p: PlannedSession) => p.status === 'skipped').length;
     const total = thisWeekPlanned.length;
@@ -1604,12 +1613,25 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
   const applyPlanChanges = async (changes: any[]) => {
     for (const change of changes) {
       if (change.action === 'skip' && change.sessionId) {
-        await safeQuery(() => supabase.from('planned_sessions').update({ status: 'skipped' }).eq('id', change.sessionId), 'coachSkip');
-        setPlannedSessions((prev: PlannedSession[]) => prev.map(p => p.id === change.sessionId ? { ...p, status: 'skipped' } : p));
+        // Coach-initiated skips are "cancelled" (replaced), not "skipped" (athlete chose to skip)
+        await safeQuery(() => supabase.from('planned_sessions').update({ status: 'cancelled' }).eq('id', change.sessionId), 'coachCancel');
+        setPlannedSessions((prev: PlannedSession[]) => prev.map(p => p.id === change.sessionId ? { ...p, status: 'cancelled' } : p));
+      }
+      if (change.action === 'cancel' && change.sessionId) {
+        await safeQuery(() => supabase.from('planned_sessions').update({ status: 'cancelled' }).eq('id', change.sessionId), 'coachCancel');
+        setPlannedSessions((prev: PlannedSession[]) => prev.map(p => p.id === change.sessionId ? { ...p, status: 'cancelled' } : p));
       }
       if (change.action === 'reschedule' && change.sessionId && change.newDate) {
-        await safeQuery(() => supabase.from('planned_sessions').update({ date: change.newDate }).eq('id', change.sessionId), 'coachReschedule');
-        setPlannedSessions((prev: PlannedSession[]) => prev.map(p => p.id === change.sessionId ? { ...p, date: change.newDate } : p));
+        // Mark original as cancelled, create new one
+        await safeQuery(() => supabase.from('planned_sessions').update({ status: 'cancelled' }).eq('id', change.sessionId), 'coachRescheduleCancel');
+        setPlannedSessions((prev: PlannedSession[]) => prev.map(p => p.id === change.sessionId ? { ...p, status: 'cancelled' } : p));
+        // Add replacement session on new date
+        const original = plannedSessions.find((p: PlannedSession) => p.id === change.sessionId);
+        if (original) {
+          const newSession = { user_id: original.user_id, date: change.newDate, sport: original.sport, type: original.type, duration: original.duration, distance: original.distance, intensity: original.intensity, description: original.description, status: 'planned', completed_session_id: null, created_by: 'coach' };
+          const { data: inserted } = await safeQuery(() => supabase.from('planned_sessions').insert(newSession).select().single(), 'coachRescheduleAdd');
+          if (inserted) setPlannedSessions((prev: PlannedSession[]) => [...prev, inserted]);
+        }
       }
       if (change.action === 'add') {
         const newSession = { user_id: plannedSessions[0]?.user_id, date: change.date, sport: change.sport, type: change.type || 'Z2', duration: change.duration || 45, distance: change.distance || 0, intensity: change.intensity || 'Easy', description: change.description || '', status: 'planned', completed_session_id: null, created_by: 'coach' };
@@ -1838,30 +1860,29 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
 
 const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any) => {
   const { showToast } = useToast();
+  const [accountTab, setAccountTab] = useState<'profile' | 'goals' | 'raceInfo'>('profile');
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    age: onboarding.age || '',
-    weight: onboarding.weight || '',
-    height: onboarding.height || '',
-    trainingBackground: onboarding.trainingBackground || 'beginner',
-    goalType: onboarding.goalType || 'finish',
-    raceDate: onboarding.raceDate || '',
-    raceLocation: onboarding.raceLocation || '',
-    raceName: onboarding.raceName || '',
-    raceCost: onboarding.raceCost || '',
-    raceWebsite: onboarding.raceWebsite || '',
-    raceAccommodation: onboarding.raceAccommodation || '',
-    raceWeather: onboarding.raceWeather || '',
-    raceTravel: onboarding.raceTravel || '',
-    raceNotes: onboarding.raceNotes || '',
-    priority: onboarding.priority || 'balanced',
-    hoursPerWeek: onboarding.hoursPerWeek || '',
-    poolDaysPerWeek: onboarding.poolDaysPerWeek || '',
-    gymAccess: onboarding.gymAccess ?? true,
-    canSwim1900m: onboarding.canSwim1900m ?? false,
-    fiveKTime: onboarding.fiveKTime || '',
-    ftp: onboarding.ftp || '',
+    age: onboarding.age || '', weight: onboarding.weight || '', height: onboarding.height || '',
+    trainingBackground: onboarding.trainingBackground || 'beginner', goalType: onboarding.goalType || 'finish',
+    raceDate: onboarding.raceDate || '', raceLocation: onboarding.raceLocation || '', raceName: onboarding.raceName || '',
+    raceCost: onboarding.raceCost || '', raceWebsite: onboarding.raceWebsite || '', raceAccommodation: onboarding.raceAccommodation || '',
+    raceWeather: onboarding.raceWeather || '', raceTravel: onboarding.raceTravel || '', raceNotes: onboarding.raceNotes || '',
+    priority: onboarding.priority || 'balanced', hoursPerWeek: onboarding.hoursPerWeek || '',
+    poolDaysPerWeek: onboarding.poolDaysPerWeek || '', gymAccess: onboarding.gymAccess ?? true,
+    canSwim1900m: onboarding.canSwim1900m ?? false, fiveKTime: onboarding.fiveKTime || '', ftp: onboarding.ftp || '',
+  });
+
+  const resetForm = () => setForm({
+    age: onboarding.age || '', weight: onboarding.weight || '', height: onboarding.height || '',
+    trainingBackground: onboarding.trainingBackground || 'beginner', goalType: onboarding.goalType || 'finish',
+    raceDate: onboarding.raceDate || '', raceLocation: onboarding.raceLocation || '', raceName: onboarding.raceName || '',
+    raceCost: onboarding.raceCost || '', raceWebsite: onboarding.raceWebsite || '', raceAccommodation: onboarding.raceAccommodation || '',
+    raceWeather: onboarding.raceWeather || '', raceTravel: onboarding.raceTravel || '', raceNotes: onboarding.raceNotes || '',
+    priority: onboarding.priority || 'balanced', hoursPerWeek: onboarding.hoursPerWeek || '',
+    poolDaysPerWeek: onboarding.poolDaysPerWeek || '', gymAccess: onboarding.gymAccess ?? true,
+    canSwim1900m: onboarding.canSwim1900m ?? false, fiveKTime: onboarding.fiveKTime || '', ftp: onboarding.ftp || '',
   });
 
   const handleSave = async () => {
@@ -1882,79 +1903,120 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
     setSaving(false);
   };
 
-  const fieldGroups = [
-    {
-      title: 'Personal Info',
-      fields: [
-        { key: 'age', label: 'Age', type: 'number', unit: 'years' },
-        { key: 'weight', label: 'Weight', type: 'number', unit: 'kg', step: '0.1' },
-        { key: 'height', label: 'Height', type: 'number', unit: 'cm' },
-        { key: 'trainingBackground', label: 'Experience', type: 'select', options: [
-          { value: 'beginner', label: 'Beginner (0-1 years)' },
-          { value: 'intermediate', label: 'Intermediate (1-3 years)' },
-          { value: 'advanced', label: 'Advanced (3+ years)' },
-        ]},
-      ],
-    },
-    {
-      title: 'Race Goals',
-      fields: [
-        { key: 'goalType', label: 'Goal', type: 'select', options: [
-          { value: 'finish', label: 'Finish the race' },
-          { value: 'sub6', label: 'Finish under 6 hours' },
-          { value: 'sub530', label: 'Finish under 5:30' },
-          { value: 'sub5', label: 'Finish under 5 hours' },
-          { value: 'pb', label: 'Personal best' },
-        ]},
-        { key: 'raceDate', label: 'Race Date', type: 'date' },
-        { key: 'priority', label: 'Priority Discipline', type: 'select', options: [
-          { value: 'swim', label: 'Swim' },
-          { value: 'bike', label: 'Bike' },
-          { value: 'run', label: 'Run' },
-          { value: 'balanced', label: 'Balanced' },
-        ]},
-      ],
-    },
-    {
-      title: 'Race Information',
-      fields: [
-        { key: 'raceName', label: 'Race Name', type: 'text' },
-        { key: 'raceLocation', label: 'Location', type: 'text' },
-        { key: 'raceCost', label: 'Entry Cost', type: 'text' },
-        { key: 'raceWebsite', label: 'Race Website', type: 'text' },
-        { key: 'raceWeather', label: 'Expected Weather', type: 'text' },
-        { key: 'raceTravel', label: 'Travel Plans', type: 'text' },
-        { key: 'raceAccommodation', label: 'Accommodation', type: 'text' },
-        { key: 'raceNotes', label: 'Notes', type: 'text' },
-      ],
-    },
-    {
-      title: 'Training Availability',
-      fields: [
-        { key: 'hoursPerWeek', label: 'Hours/week', type: 'number', unit: 'hrs' },
-        { key: 'poolDaysPerWeek', label: 'Pool days/week', type: 'number' },
-        { key: 'gymAccess', label: 'Gym access', type: 'toggle' },
-      ],
-    },
-    {
-      title: 'Fitness Benchmarks',
-      fields: [
-        { key: 'canSwim1900m', label: 'Can swim 1.9km', type: 'toggle' },
-        { key: 'fiveKTime', label: '5K time', type: 'number', unit: 'seconds' },
-        { key: 'ftp', label: 'FTP', type: 'number', unit: 'watts' },
-      ],
-    },
+  const profileFields = [
+    { title: 'Personal Info', fields: [
+      { key: 'age', label: 'Age', type: 'number', unit: 'years' },
+      { key: 'weight', label: 'Weight', type: 'number', unit: 'kg', step: '0.1' },
+      { key: 'height', label: 'Height', type: 'number', unit: 'cm' },
+      { key: 'trainingBackground', label: 'Experience', type: 'select', options: [
+        { value: 'beginner', label: 'Beginner (0-1 years)' },
+        { value: 'intermediate', label: 'Intermediate (1-3 years)' },
+        { value: 'advanced', label: 'Advanced (3+ years)' },
+      ]},
+    ]},
+    { title: 'Training Availability', fields: [
+      { key: 'hoursPerWeek', label: 'Hours/week', type: 'number', unit: 'hrs' },
+      { key: 'poolDaysPerWeek', label: 'Pool days/week', type: 'number' },
+      { key: 'gymAccess', label: 'Gym access', type: 'toggle' },
+    ]},
+    { title: 'Fitness Benchmarks', fields: [
+      { key: 'canSwim1900m', label: 'Can swim 1.9km', type: 'toggle' },
+      { key: 'fiveKTime', label: '5K time', type: 'number', unit: 'seconds' },
+      { key: 'ftp', label: 'FTP', type: 'number', unit: 'watts' },
+    ]},
   ];
+
+  const goalFields = [
+    { title: 'Race Goals', fields: [
+      { key: 'goalType', label: 'Goal', type: 'select', options: [
+        { value: 'finish', label: 'Finish the race' },
+        { value: 'sub6', label: 'Finish under 6 hours' },
+        { value: 'sub530', label: 'Finish under 5:30' },
+        { value: 'sub5', label: 'Finish under 5 hours' },
+        { value: 'pb', label: 'Personal best' },
+      ]},
+      { key: 'raceDate', label: 'Race Date', type: 'date' },
+      { key: 'priority', label: 'Priority Discipline', type: 'select', options: [
+        { value: 'swim', label: 'Swim' },
+        { value: 'bike', label: 'Bike' },
+        { value: 'run', label: 'Run' },
+        { value: 'balanced', label: 'Balanced' },
+      ]},
+    ]},
+  ];
+
+  const raceInfoFields = [
+    { title: 'Event Details', fields: [
+      { key: 'raceName', label: 'Race Name', type: 'text' },
+      { key: 'raceLocation', label: 'Location', type: 'text' },
+      { key: 'raceWebsite', label: 'Race Website', type: 'text' },
+      { key: 'raceCost', label: 'Entry Cost', type: 'text' },
+    ]},
+    { title: 'Logistics', fields: [
+      { key: 'raceTravel', label: 'Travel Plans', type: 'text' },
+      { key: 'raceAccommodation', label: 'Accommodation', type: 'text' },
+      { key: 'raceWeather', label: 'Expected Weather', type: 'text' },
+      { key: 'raceNotes', label: 'Notes', type: 'text' },
+    ]},
+  ];
+
+  const currentFieldGroups = accountTab === 'profile' ? profileFields : accountTab === 'goals' ? goalFields : raceInfoFields;
+
+  const renderField = (field: any) => (
+    <div key={field.key} className={`px-4 py-3 ${field.type === 'text' ? 'block' : 'flex items-center justify-between'}`}>
+      <label className="text-sm text-gray-600 font-medium">{field.label}</label>
+      {!editing ? (
+        <span className={`text-sm font-semibold text-gray-900 ${field.type === 'text' ? 'block mt-1' : ''}`}>
+          {field.type === 'toggle' ? (
+            (form as any)[field.key] ? <span className="text-green-600">Yes</span> : <span className="text-gray-400">No</span>
+          ) : field.type === 'select' ? (
+            field.options?.find((o: any) => o.value === (form as any)[field.key])?.label || (form as any)[field.key] || '—'
+          ) : field.key === 'fiveKTime' && (form as any)[field.key] ? (
+            `${Math.floor((form as any)[field.key] / 60)}:${String((form as any)[field.key] % 60).padStart(2, '0')}`
+          ) : field.key === 'raceDate' && (form as any)[field.key] ? (
+            formatRaceDate((form as any)[field.key])
+          ) : (
+            (form as any)[field.key] ? `${(form as any)[field.key]}${field.unit ? ' ' + field.unit : ''}` : '—'
+          )}
+        </span>
+      ) : (
+        <div className={field.type === 'text' ? 'w-full mt-1' : 'w-40'}>
+          {field.type === 'toggle' ? (
+            <button onClick={() => setForm({ ...form, [field.key]: !(form as any)[field.key] })}
+              className={`w-12 h-6 rounded-full relative transition-colors ${(form as any)[field.key] ? 'bg-green-500' : 'bg-gray-300'}`}>
+              <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${(form as any)[field.key] ? 'left-6' : 'left-0.5'}`} />
+            </button>
+          ) : field.type === 'select' ? (
+            <select value={(form as any)[field.key]} onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+              className="w-full p-2 border rounded-lg text-sm text-right">
+              {field.options?.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          ) : field.type === 'text' ? (
+            <input type="text" value={(form as any)[field.key] || ''}
+              onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+              placeholder={`Enter ${field.label.toLowerCase()}...`}
+              className="w-full p-2 border rounded-lg text-sm" />
+          ) : (
+            <div className="flex items-center gap-1">
+              <input type={field.type === 'date' ? 'date' : 'number'} step={field.step || '1'}
+                value={(form as any)[field.key] || ''}
+                onChange={(e) => setForm({ ...form, [field.key]: field.type === 'number' ? (e.target.value ? +e.target.value : '') : e.target.value })}
+                className="w-full p-2 border rounded-lg text-sm text-right" />
+              {field.unit && <span className="text-xs text-gray-400 whitespace-nowrap">{field.unit}</span>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => setActiveScreen('home')} className="p-2 hover:bg-gray-100 rounded-lg">
-            <ChevronLeft size={20} />
-          </button>
-          <h2 className="text-xl font-bold text-gray-900">Profile Settings</h2>
+          <button onClick={() => setActiveScreen('home')} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronLeft size={20} /></button>
+          <h2 className="text-xl font-bold text-gray-900">Settings</h2>
         </div>
         {!editing ? (
           <button onClick={() => setEditing(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
@@ -1962,12 +2024,11 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
           </button>
         ) : (
           <div className="flex gap-2">
-            <button onClick={() => { setEditing(false); setForm({ age: onboarding.age || '', weight: onboarding.weight || '', height: onboarding.height || '', trainingBackground: onboarding.trainingBackground || 'beginner', goalType: onboarding.goalType || 'finish', raceDate: onboarding.raceDate || '', priority: onboarding.priority || 'balanced', hoursPerWeek: onboarding.hoursPerWeek || '', poolDaysPerWeek: onboarding.poolDaysPerWeek || '', gymAccess: onboarding.gymAccess ?? true, canSwim1900m: onboarding.canSwim1900m ?? false, fiveKTime: onboarding.fiveKTime || '', ftp: onboarding.ftp || '' }); }}
+            <button onClick={() => { setEditing(false); resetForm(); }}
               className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
             <button onClick={handleSave} disabled={saving}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
-              {saving ? <Loader className="animate-spin" size={14} /> : <Save size={14} />}
-              Save
+              {saving ? <Loader className="animate-spin" size={14} /> : <Save size={14} />} Save
             </button>
           </div>
         )}
@@ -1986,66 +2047,53 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
         </div>
       </div>
 
-      {/* Field Groups */}
-      {fieldGroups.map((group) => (
+      {/* Tab buttons */}
+      <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+        {[
+          { id: 'profile' as const, label: '👤 Profile' },
+          { id: 'goals' as const, label: '🎯 Goals' },
+          { id: 'raceInfo' as const, label: '🏁 Race Info' },
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setAccountTab(tab.id)}
+            className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${
+              accountTab === tab.id ? 'bg-white shadow text-gray-900' : 'text-gray-500'
+            }`}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Race location preview on Race Info tab */}
+      {accountTab === 'raceInfo' && form.raceLocation && (
+        <div className="relative rounded-xl overflow-hidden" style={{ height: 120 }}>
+          <div className="absolute inset-0 bg-cover bg-center" style={{
+            backgroundImage: `url(${getRaceImageUrl(form.raceLocation)})`,
+            filter: 'brightness(0.4) grayscale(0.7)',
+          }} />
+          <div className="relative z-10 p-4 text-white flex items-end h-full">
+            <div>
+              <div className="text-xs opacity-70">📍 Race Location</div>
+              <div className="font-bold text-lg">{form.raceLocation}</div>
+              {form.raceName && <div className="text-sm opacity-80">{form.raceName}</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Field Groups for current tab */}
+      {currentFieldGroups.map((group) => (
         <div key={group.title} className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b">
             <h3 className="font-bold text-sm text-gray-700">{group.title}</h3>
           </div>
           <div className="divide-y">
-            {group.fields.map((field: any) => (
-              <div key={field.key} className="px-4 py-3 flex items-center justify-between">
-                <label className="text-sm text-gray-600 font-medium">{field.label}</label>
-                {!editing ? (
-                  <span className="text-sm font-semibold text-gray-900">
-                    {field.type === 'toggle' ? (
-                      (form as any)[field.key] ? <span className="text-green-600">Yes</span> : <span className="text-gray-400">No</span>
-                    ) : field.type === 'select' ? (
-                      field.options?.find((o: any) => o.value === (form as any)[field.key])?.label || (form as any)[field.key] || '—'
-                    ) : field.key === 'fiveKTime' && (form as any)[field.key] ? (
-                      `${Math.floor((form as any)[field.key] / 60)}:${String((form as any)[field.key] % 60).padStart(2, '0')}`
-                    ) : (
-                      (form as any)[field.key] ? `${(form as any)[field.key]}${field.unit ? ' ' + field.unit : ''}` : '—'
-                    )}
-                  </span>
-                ) : (
-                  <div className={field.type === 'text' ? 'w-full mt-1' : 'w-40'}>
-                    {field.type === 'toggle' ? (
-                      <button onClick={() => setForm({ ...form, [field.key]: !(form as any)[field.key] })}
-                        className={`w-12 h-6 rounded-full relative transition-colors ${(form as any)[field.key] ? 'bg-green-500' : 'bg-gray-300'}`}>
-                        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${(form as any)[field.key] ? 'left-6' : 'left-0.5'}`} />
-                      </button>
-                    ) : field.type === 'select' ? (
-                      <select value={(form as any)[field.key]} onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
-                        className="w-full p-2 border rounded-lg text-sm text-right">
-                        {field.options?.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
-                    ) : field.type === 'text' ? (
-                      <input type="text"
-                        value={(form as any)[field.key] || ''}
-                        onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
-                        placeholder={`Enter ${field.label.toLowerCase()}...`}
-                        className="w-full p-2 border rounded-lg text-sm" />
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <input type={field.type === 'date' ? 'date' : 'number'}
-                          step={field.step || '1'}
-                          value={(form as any)[field.key] || ''}
-                          onChange={(e) => setForm({ ...form, [field.key]: field.type === 'number' ? (e.target.value ? +e.target.value : '') : e.target.value })}
-                          className="w-full p-2 border rounded-lg text-sm text-right" />
-                        {field.unit && <span className="text-xs text-gray-400 whitespace-nowrap">{field.unit}</span>}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+            {group.fields.map((field: any) => renderField(field))}
           </div>
         </div>
       ))}
 
-      {/* PIN Section for Manolis */}
-      {user.email === MANOLIS_EMAIL && (
+      {/* PIN Section - only on Profile tab */}
+      {accountTab === 'profile' && user.email === MANOLIS_EMAIL && (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b">
             <h3 className="font-bold text-sm text-gray-700">Security</h3>

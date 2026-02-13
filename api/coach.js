@@ -181,9 +181,9 @@ function buildSystemPrompt(ctx, mode) {
     sections.push(`CRITICAL: When the athlete asks about today's training, ONLY refer to the TODAY'S PLANNED SESSIONS section above. Do not invent sessions.`);
     if (ctx.canModifyPlan) {
       sections.push(`\nYou can modify the training plan if the athlete asks. When making changes, include a JSON block at the end:`);
-      sections.push(`[PLAN_CHANGES][{"action":"skip","sessionId":"<id>"},{"action":"add","date":"YYYY-MM-DD","sport":"Run","type":"Z2","duration":40,"distance":6,"intensity":"Easy","description":"Easy recovery run"}][/PLAN_CHANGES]`);
-      sections.push(`Only include [PLAN_CHANGES] when the athlete explicitly asks to change their plan. Available actions: skip, add, reschedule (with newDate).`);
-      sections.push(`When skipping or rescheduling, use the session ID from the UPCOMING PLANNED SESSIONS list.`);
+      sections.push(`[PLAN_CHANGES][{"action":"cancel","sessionId":"<id>"},{"action":"add","date":"YYYY-MM-DD","sport":"Run","type":"Z2","duration":40,"distance":6,"intensity":"Easy","description":"Easy recovery run"}][/PLAN_CHANGES]`);
+      sections.push(`Only include [PLAN_CHANGES] when the athlete explicitly asks to change their plan. Available actions: cancel (replaces a session - does NOT count as skipped), add, reschedule (with newDate - marks original as cancelled and creates new session).`);
+      sections.push(`When replacing or rescheduling, use the session ID from the UPCOMING PLANNED SESSIONS list. Use "cancel" not "skip" — cancelled sessions appear as "Replaced" in amber color and don't count against compliance.`);
     }
   }
 
