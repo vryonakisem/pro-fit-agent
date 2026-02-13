@@ -428,17 +428,17 @@ const ProFitAgentV5 = () => {
 // ============================================================================
 
 const MANOLIS_EMAIL = 'manolis@profitagent.app';
-const DEFAULT_PIN = '2243';
+const DEFAULT_PIN = '224366';
 
 const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
   const [mode, setMode] = useState<'choose' | 'pin' | 'signin' | 'signup'>('choose');
-  const [pin, setPin] = useState(['', '', '', '']);
+  const [pin, setPin] = useState(['', '', '', '', '', '']);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const pinRefs = [React.useRef<HTMLInputElement>(null), React.useRef<HTMLInputElement>(null), React.useRef<HTMLInputElement>(null), React.useRef<HTMLInputElement>(null)];
+  const pinRefs = [React.useRef<HTMLInputElement>(null), React.useRef<HTMLInputElement>(null), React.useRef<HTMLInputElement>(null), React.useRef<HTMLInputElement>(null), React.useRef<HTMLInputElement>(null), React.useRef<HTMLInputElement>(null)];
 
   const handlePinChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -446,8 +446,8 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
     newPin[index] = value.slice(-1);
     setPin(newPin);
     setError('');
-    if (value && index < 3) pinRefs[index + 1]?.current?.focus();
-    if (newPin.every(d => d !== '') && newPin.join('').length === 4) {
+    if (value && index < 5) pinRefs[index + 1]?.current?.focus();
+    if (newPin.every(d => d !== '') && newPin.join('').length === 6) {
       setTimeout(() => handlePinSubmit(newPin.join('')), 200);
     }
   };
@@ -479,7 +479,7 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
           if (signUpData.user) { onAuth(signUpData.user as any); setLoading(false); return; }
         }
         setError('Wrong PIN');
-        setPin(['', '', '', '']);
+        setPin(['', '', '', '', '', '']);
         pinRefs[0]?.current?.focus();
         setLoading(false);
         return;
@@ -544,18 +544,18 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
               <Lock size={28} className="text-purple-600" />
             </div>
             <h2 className="text-xl font-bold mb-1">Welcome back, Manolis</h2>
-            <p className="text-gray-500 text-sm mb-6">Enter your 4-digit PIN</p>
-            <div className="flex justify-center gap-3 mb-4">
+            <p className="text-gray-500 text-sm mb-6">Enter your 6-digit PIN</p>
+            <div className="flex justify-center gap-2 mb-4">
               {pin.map((digit, i) => (
                 <input key={i} ref={pinRefs[i]} type="text" inputMode="numeric" maxLength={1}
                   value={digit} onChange={(e) => handlePinChange(i, e.target.value)}
                   onKeyDown={(e) => handlePinKeyDown(i, e)}
-                  className={`w-14 h-16 text-center text-2xl font-bold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 ${error ? 'border-red-400 shake' : 'border-gray-200'}`} />
+                  className={`w-11 h-14 text-center text-2xl font-bold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 ${error ? 'border-red-400 shake' : 'border-gray-200'}`} />
               ))}
             </div>
             {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
             {loading && <Loader className="animate-spin mx-auto text-purple-500" size={24} />}
-            <button onClick={() => { setMode('choose'); setPin(['', '', '', '']); setError(''); }}
+            <button onClick={() => { setMode('choose'); setPin(['', '', '', '', '', '']); setError(''); }}
               className="text-sm text-gray-500 hover:underline mt-4">Back</button>
           </div>
         )}
