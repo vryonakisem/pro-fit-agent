@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, TrendingUp, Brain, Target, Plus, ChevronLeft, ChevronRight,
-  X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw
+  X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw, UtensilsCrossed, Lock
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
@@ -414,7 +414,8 @@ const ProFitAgentV5 = () => {
           {activeScreen === 'calendar' && <CalendarScreen plannedSessions={plannedSessions} />}
           {activeScreen === 'log' && <LogScreen onLogTraining={handleLogTraining} onLogBody={handleLogBody} setActiveScreen={setActiveScreen} />}
           {activeScreen === 'plan' && <PlanScreen plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} onboarding={onboardingData} />}
-          {activeScreen === 'coach' && <CoachScreen onboarding={onboardingData} plan={plan} plannedSessions={plannedSessions} trainingSessions={trainingSessions} bodyMetrics={bodyMetrics} />}
+          {activeScreen === 'coach' && <CoachScreen onboarding={onboardingData} plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} trainingSessions={trainingSessions} bodyMetrics={bodyMetrics} />}
+          {activeScreen === 'nutrition' && <NutritionScreen onboarding={onboardingData} plan={plan} trainingSessions={trainingSessions} />}
         </div>
         <BottomNav activeTab={activeScreen} setActiveTab={setActiveScreen} />
       </div>
@@ -423,16 +424,70 @@ const ProFitAgentV5 = () => {
 };
 
 // ============================================================================
-// AUTH FLOW
+// AUTH FLOW — PIN for Manolis + Normal signup for others
 // ============================================================================
 
+const MANOLIS_EMAIL = 'manolis@profitagent.app';
+const DEFAULT_PIN = '2243';
+
 const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'choose' | 'pin' | 'signin' | 'signup'>('choose');
+  const [pin, setPin] = useState(['', '', '', '']);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const pinRefs = [React.useRef<HTMLInputElement>(null), React.useRef<HTMLInputElement>(null), React.useRef<HTMLInputElement>(null), React.useRef<HTMLInputElement>(null)];
+
+  const handlePinChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    const newPin = [...pin];
+    newPin[index] = value.slice(-1);
+    setPin(newPin);
+    setError('');
+    if (value && index < 3) pinRefs[index + 1]?.current?.focus();
+    if (newPin.every(d => d !== '') && newPin.join('').length === 4) {
+      setTimeout(() => handlePinSubmit(newPin.join('')), 200);
+    }
+  };
+
+  const handlePinKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !pin[index] && index > 0) {
+      pinRefs[index - 1]?.current?.focus();
+    }
+  };
+
+  const handlePinSubmit = async (pinCode: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      // Try to sign in with Manolis's account using PIN as password
+      const { data, error: signInErr } = await supabase.auth.signInWithPassword({
+        email: MANOLIS_EMAIL,
+        password: pinCode,
+      });
+      if (signInErr) {
+        // If account doesn't exist yet, create it with default PIN
+        if (pinCode === DEFAULT_PIN) {
+          const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+            email: MANOLIS_EMAIL,
+            password: DEFAULT_PIN,
+            options: { data: { full_name: 'Manolis' } },
+          });
+          if (signUpErr) { setError('Setup failed: ' + signUpErr.message); setLoading(false); return; }
+          if (signUpData.user) { onAuth(signUpData.user as any); setLoading(false); return; }
+        }
+        setError('Wrong PIN');
+        setPin(['', '', '', '']);
+        pinRefs[0]?.current?.focus();
+        setLoading(false);
+        return;
+      }
+      if (data.user) onAuth(data.user as any);
+    } catch (err: any) { setError('Connection error'); }
+    setLoading(false);
+  };
 
   const handleSubmit = async () => {
     setError(''); setLoading(true);
@@ -455,27 +510,77 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Pro Fit Agent</h1>
-          <p className="text-gray-600">Cloud-Powered Training System</p>
+          <p className="text-gray-500 text-sm">Cloud-Powered Training System</p>
         </div>
-        <div className="flex gap-2 mb-6">
-          <button onClick={() => { setMode('signin'); setError(''); }} className={`flex-1 py-2 rounded font-semibold ${mode === 'signin' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Sign In</button>
-          <button onClick={() => { setMode('signup'); setError(''); }} className={`flex-1 py-2 rounded font-semibold ${mode === 'signup' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Sign Up</button>
-        </div>
-        {error && <div className="bg-red-50 text-red-800 p-3 rounded mb-4 text-sm flex items-center gap-2"><AlertTriangle size={16} />{error}</div>}
-        <div className="space-y-4">
-          {mode === 'signup' && (
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label><input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full p-3 border rounded-lg" placeholder="John Doe" /></div>
-          )}
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border rounded-lg" placeholder="you@example.com" /></div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border rounded-lg" placeholder="••••••••" onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} /></div>
-          <button onClick={handleSubmit} disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
-            {loading && <Loader className="animate-spin" size={18} />}
-            {loading ? 'Please wait...' : mode === 'signup' ? 'Create Account' : 'Sign In'}
-          </button>
-        </div>
+
+        {mode === 'choose' && (
+          <div className="space-y-3">
+            <button onClick={() => { setMode('pin'); setTimeout(() => pinRefs[0]?.current?.focus(), 100); }}
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-3 hover:shadow-lg transition-shadow">
+              <Lock size={20} /> Manolis — Enter PIN
+            </button>
+            <div className="flex items-center gap-3 py-2">
+              <div className="flex-1 h-px bg-gray-200"></div>
+              <span className="text-xs text-gray-400">or</span>
+              <div className="flex-1 h-px bg-gray-200"></div>
+            </div>
+            <button onClick={() => setMode('signin')}
+              className="w-full border-2 border-gray-200 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+              Sign In with Email
+            </button>
+            <button onClick={() => setMode('signup')}
+              className="w-full text-sm text-blue-600 hover:underline py-1">
+              Create new account
+            </button>
+          </div>
+        )}
+
+        {mode === 'pin' && (
+          <div className="text-center">
+            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock size={28} className="text-purple-600" />
+            </div>
+            <h2 className="text-xl font-bold mb-1">Welcome back, Manolis</h2>
+            <p className="text-gray-500 text-sm mb-6">Enter your 4-digit PIN</p>
+            <div className="flex justify-center gap-3 mb-4">
+              {pin.map((digit, i) => (
+                <input key={i} ref={pinRefs[i]} type="text" inputMode="numeric" maxLength={1}
+                  value={digit} onChange={(e) => handlePinChange(i, e.target.value)}
+                  onKeyDown={(e) => handlePinKeyDown(i, e)}
+                  className={`w-14 h-16 text-center text-2xl font-bold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 ${error ? 'border-red-400 shake' : 'border-gray-200'}`} />
+              ))}
+            </div>
+            {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+            {loading && <Loader className="animate-spin mx-auto text-purple-500" size={24} />}
+            <button onClick={() => { setMode('choose'); setPin(['', '', '', '']); setError(''); }}
+              className="text-sm text-gray-500 hover:underline mt-4">Back</button>
+          </div>
+        )}
+
+        {(mode === 'signin' || mode === 'signup') && (
+          <>
+            <div className="flex gap-2 mb-6">
+              <button onClick={() => { setMode('signin'); setError(''); }} className={`flex-1 py-2 rounded font-semibold ${mode === 'signin' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Sign In</button>
+              <button onClick={() => { setMode('signup'); setError(''); }} className={`flex-1 py-2 rounded font-semibold ${mode === 'signup' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Sign Up</button>
+            </div>
+            {error && <div className="bg-red-50 text-red-800 p-3 rounded mb-4 text-sm flex items-center gap-2"><AlertTriangle size={16} />{error}</div>}
+            <div className="space-y-4">
+              {mode === 'signup' && (
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label><input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full p-3 border rounded-lg" placeholder="John Doe" /></div>
+              )}
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border rounded-lg" placeholder="you@example.com" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border rounded-lg" placeholder="••••••••" onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} /></div>
+              <button onClick={handleSubmit} disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                {loading && <Loader className="animate-spin" size={18} />}
+                {loading ? 'Please wait...' : mode === 'signup' ? 'Create Account' : 'Sign In'}
+              </button>
+            </div>
+            <button onClick={() => { setMode('choose'); setError(''); }} className="w-full text-sm text-gray-500 hover:underline mt-4">Back</button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -800,17 +905,19 @@ const CalendarScreen = ({ plannedSessions }: any) => {
 
                 return (
                   <button key={dateStr} onClick={() => setSelectedDate(dateStr)}
-                    className={`relative w-full aspect-square rounded-full flex flex-col items-center justify-center transition-all duration-200 ${cellClass} ${isSelected ? 'ring-2 ring-blue-400 scale-110 z-10' : ''} ${isToday && !isSelected ? (isDark ? 'ring-2 ring-white ring-opacity-40' : 'ring-2 ring-blue-500') : ''} hover:scale-105`}>
-                    <span className={`text-xs font-bold ${textClass}`}>{dayNum}</span>
+                    className={`relative w-full rounded-lg flex flex-col items-center justify-center py-1.5 transition-all duration-200 ${cellClass} ${isSelected ? 'ring-2 ring-blue-400 scale-105 z-10' : ''} ${isToday && !isSelected ? (isDark ? 'ring-2 ring-white ring-opacity-40' : 'ring-2 ring-blue-500') : ''}`}>
+                    <span className={`text-[10px] font-bold ${textClass}`}>{dayNum}</span>
                     {sports && sports.length > 0 && (
-                      <div className="flex gap-0.5 mt-0.5">
+                      <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center">
                         {sports.slice(0, 3).map((sport: string, i: number) => (
-                          <div key={i} className={`w-1.5 h-1.5 rounded-full ${type === 'skipped' ? t.dotSkipped : type === 'completed' ? sportDotColor[sport] : t.dotPlanned}`} />
+                          <span key={i} className={`text-[7px] font-bold px-1 rounded ${type === 'skipped' ? 'text-gray-400' : sport === 'Swim' ? 'text-cyan-600 bg-cyan-100' : sport === 'Bike' ? 'text-emerald-600 bg-emerald-100' : sport === 'Run' ? 'text-rose-600 bg-rose-100' : 'text-violet-600 bg-violet-100'}`}>
+                            {sport === 'Swim' ? 'S' : sport === 'Bike' ? 'B' : sport === 'Run' ? 'R' : 'G'}
+                          </span>
                         ))}
                       </div>
                     )}
                     {type === 'completed' && (
-                      <div className="absolute -top-0.5 -right-0.5 bg-emerald-500 rounded-full w-3.5 h-3.5 flex items-center justify-center"><Check size={8} className="text-white" /></div>
+                      <div className="absolute -top-0.5 -right-0.5 bg-emerald-500 rounded-full w-3 h-3 flex items-center justify-center"><Check size={7} className="text-white" /></div>
                     )}
                   </button>
                 );
@@ -1030,7 +1137,7 @@ interface ChatMessage {
   timestamp: string;
 }
 
-const CoachScreen = ({ onboarding, plan, plannedSessions, trainingSessions, bodyMetrics }: any) => {
+const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, trainingSessions, bodyMetrics }: any) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'summary'>('summary');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -1071,11 +1178,13 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, trainingSessions, body
       },
       recentBody: bodyMetrics.slice(0, 5),
       recentSessions: trainingSessions.slice(0, 7),
+      plannedSessionsList: plannedSessions.filter((s: PlannedSession) => s.status === 'planned' && new Date(s.date) >= new Date()).slice(0, 14),
     };
   };
 
   const callCoachAPI = async (mode: 'chat' | 'summary', userMessage?: string) => {
     const context = buildAthleteContext();
+    context.canModifyPlan = true;
     try {
       const response = await fetch('/api/coach', {
         method: 'POST',
@@ -1089,10 +1198,34 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, trainingSessions, body
       }
 
       const data = await response.json();
+
+      // Check for plan modification commands in the response
+      if (data.planChanges && data.planChanges.length > 0) {
+        await applyPlanChanges(data.planChanges);
+      }
+
       return data.message;
     } catch (err: any) {
       console.error('Coach API error:', err);
       throw err;
+    }
+  };
+
+  const applyPlanChanges = async (changes: any[]) => {
+    for (const change of changes) {
+      if (change.action === 'skip' && change.sessionId) {
+        await safeQuery(() => supabase.from('planned_sessions').update({ status: 'skipped' }).eq('id', change.sessionId), 'coachSkip');
+        setPlannedSessions((prev: PlannedSession[]) => prev.map(p => p.id === change.sessionId ? { ...p, status: 'skipped' } : p));
+      }
+      if (change.action === 'reschedule' && change.sessionId && change.newDate) {
+        await safeQuery(() => supabase.from('planned_sessions').update({ date: change.newDate }).eq('id', change.sessionId), 'coachReschedule');
+        setPlannedSessions((prev: PlannedSession[]) => prev.map(p => p.id === change.sessionId ? { ...p, date: change.newDate } : p));
+      }
+      if (change.action === 'add') {
+        const newSession = { user_id: plannedSessions[0]?.user_id, date: change.date, sport: change.sport, type: change.type || 'Z2', duration: change.duration || 45, distance: change.distance || 0, intensity: change.intensity || 'Easy', description: change.description || '', status: 'planned', completed_session_id: null, created_by: 'coach' };
+        const { data: inserted } = await safeQuery(() => supabase.from('planned_sessions').insert(newSession).select().single(), 'coachAdd');
+        if (inserted) setPlannedSessions((prev: PlannedSession[]) => [...prev, inserted]);
+      }
     }
   };
 
@@ -1131,7 +1264,9 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, trainingSessions, body
     "Am I on track for my race goal?",
     "What should I focus on this week?",
     "Should I take a rest day?",
-    "How can I improve my swim?",
+    "Skip tomorrow's workout — I'm too tired",
+    "Add an easy swim session on Saturday",
+    "Move my long bike ride to Sunday",
   ];
 
   return (
@@ -1306,23 +1441,241 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, trainingSessions, body
 };
 
 // ============================================================================
-// BOTTOM NAV
+// NUTRITION SCREEN — AI Meal Plans + Manual Logging
+// ============================================================================
+
+interface MealEntry {
+  id?: string;
+  meal: string;
+  food: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
+  const [activeTab, setActiveTab] = useState<'plan' | 'log'>('plan');
+  const [mealPlan, setMealPlan] = useState<string | null>(null);
+  const [mealPlanLoading, setMealPlanLoading] = useState(false);
+  const [todayMeals, setTodayMeals] = useState<MealEntry[]>([]);
+  const [showAddMeal, setShowAddMeal] = useState(false);
+  const [mealForm, setMealForm] = useState<MealEntry>({ meal: 'Breakfast', food: '', calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+  const totalCals = todayMeals.reduce((s, m) => s + m.calories, 0);
+  const totalProtein = todayMeals.reduce((s, m) => s + m.protein, 0);
+  const totalCarbs = todayMeals.reduce((s, m) => s + m.carbs, 0);
+  const totalFat = todayMeals.reduce((s, m) => s + m.fat, 0);
+
+  // Estimate daily targets based on weight and training
+  const weight = onboarding?.weight || 75;
+  const targetCalories = Math.round(weight * 35);
+  const targetProtein = Math.round(weight * 1.8);
+  const targetCarbs = Math.round(weight * 5);
+  const targetFat = Math.round(weight * 1);
+
+  const handleGenerateMealPlan = async () => {
+    setMealPlanLoading(true);
+    setMealPlan(null);
+    try {
+      const response = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'nutrition',
+          athleteContext: { onboarding, plan, recentSessions: trainingSessions.slice(0, 7), targetCalories, targetProtein, targetCarbs, targetFat },
+        }),
+      });
+      const data = await response.json();
+      setMealPlan(data.message);
+    } catch (err) {
+      setMealPlan('Could not generate meal plan. Please try again.');
+    }
+    setMealPlanLoading(false);
+  };
+
+  const handleAddMeal = () => {
+    if (!mealForm.food) return;
+    setTodayMeals([...todayMeals, { ...mealForm, id: Date.now().toString() }]);
+    setMealForm({ meal: 'Breakfast', food: '', calories: 0, protein: 0, carbs: 0, fat: 0 });
+    setShowAddMeal(false);
+  };
+
+  const handleDeleteMeal = (id: string) => {
+    setTodayMeals(todayMeals.filter(m => m.id !== id));
+  };
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex gap-2">
+        <button onClick={() => setActiveTab('plan')}
+          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${activeTab === 'plan' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          <Brain size={16} /> AI Meal Plan
+        </button>
+        <button onClick={() => setActiveTab('log')}
+          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${activeTab === 'log' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          <UtensilsCrossed size={16} /> Food Log
+        </button>
+      </div>
+
+      {activeTab === 'plan' && (
+        <div className="space-y-3">
+          {/* Daily Targets */}
+          <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg p-4">
+            <h3 className="font-bold text-sm mb-2">Daily Nutrition Targets</h3>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{targetCalories}</div><div className="text-xs opacity-80">kcal</div></div>
+              <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{targetProtein}g</div><div className="text-xs opacity-80">Protein</div></div>
+              <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{targetCarbs}g</div><div className="text-xs opacity-80">Carbs</div></div>
+              <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{targetFat}g</div><div className="text-xs opacity-80">Fat</div></div>
+            </div>
+          </div>
+
+          {/* AI Meal Plan */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-lg flex items-center gap-2"><UtensilsCrossed size={20} className="text-green-500" /> AI Meal Plan</h3>
+              <button onClick={handleGenerateMealPlan} disabled={mealPlanLoading}
+                className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
+                {mealPlanLoading ? <Loader className="animate-spin" size={14} /> : <RefreshCw size={14} />}
+                {mealPlanLoading ? 'Generating...' : mealPlan ? 'Refresh' : 'Generate'}
+              </button>
+            </div>
+
+            {!mealPlan && !mealPlanLoading && (
+              <div className="text-center py-6 text-gray-400">
+                <UtensilsCrossed className="mx-auto mb-3 text-green-300" size={36} />
+                <p className="text-sm">Generate a personalised meal plan based on your training</p>
+              </div>
+            )}
+
+            {mealPlanLoading && (
+              <div className="text-center py-6">
+                <Loader className="animate-spin mx-auto mb-3 text-green-400" size={28} />
+                <p className="text-sm text-gray-500">Creating your meal plan...</p>
+              </div>
+            )}
+
+            {mealPlan && !mealPlanLoading && (
+              <div className="prose prose-sm max-w-none">
+                {mealPlan.split('\n').map((line: string, i: number) => {
+                  if (line.startsWith('**') && line.endsWith('**')) return <h4 key={i} className="font-bold text-gray-900 mt-3 mb-1">{line.replace(/\*\*/g, '')}</h4>;
+                  if (line.startsWith('- ')) return <p key={i} className="text-sm text-gray-700 ml-3 mb-1">{'\u2022'} {line.slice(2)}</p>;
+                  if (line.trim() === '') return <div key={i} className="h-2" />;
+                  const parts = line.split(/(\*\*.*?\*\*)/g);
+                  return (<p key={i} className="text-sm text-gray-700 mb-1">{parts.map((part: string, j: number) => part.startsWith('**') && part.endsWith('**') ? <strong key={j}>{part.replace(/\*\*/g, '')}</strong> : part)}</p>);
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'log' && (
+        <div className="space-y-3">
+          {/* Today's Progress */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="font-bold text-lg mb-3">Today's Intake</h3>
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              <div className="text-center">
+                <div className="text-xs text-gray-500 mb-1">Calories</div>
+                <div className={`text-lg font-bold ${totalCals >= targetCalories ? 'text-green-600' : 'text-gray-800'}`}>{totalCals}</div>
+                <div className="text-xs text-gray-400">/ {targetCalories}</div>
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1"><div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (totalCals / targetCalories) * 100)}%` }} /></div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-gray-500 mb-1">Protein</div>
+                <div className={`text-lg font-bold ${totalProtein >= targetProtein ? 'text-blue-600' : 'text-gray-800'}`}>{totalProtein}g</div>
+                <div className="text-xs text-gray-400">/ {targetProtein}g</div>
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1"><div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (totalProtein / targetProtein) * 100)}%` }} /></div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-gray-500 mb-1">Carbs</div>
+                <div className={`text-lg font-bold ${totalCarbs >= targetCarbs ? 'text-orange-600' : 'text-gray-800'}`}>{totalCarbs}g</div>
+                <div className="text-xs text-gray-400">/ {targetCarbs}g</div>
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1"><div className="bg-orange-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (totalCarbs / targetCarbs) * 100)}%` }} /></div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-gray-500 mb-1">Fat</div>
+                <div className={`text-lg font-bold ${totalFat >= targetFat ? 'text-purple-600' : 'text-gray-800'}`}>{totalFat}g</div>
+                <div className="text-xs text-gray-400">/ {targetFat}g</div>
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1"><div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (totalFat / targetFat) * 100)}%` }} /></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Meals List */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold">Meals</h3>
+              <button onClick={() => setShowAddMeal(true)} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold"><Plus size={14} /> Add Meal</button>
+            </div>
+
+            {todayMeals.length === 0 && !showAddMeal && (
+              <p className="text-gray-400 text-sm text-center py-4">No meals logged today. Tap "Add Meal" to start tracking.</p>
+            )}
+
+            {todayMeals.map((meal) => (
+              <div key={meal.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-2">
+                <div className="flex-1">
+                  <div className="font-semibold text-sm">{meal.food}</div>
+                  <div className="text-xs text-gray-500">{meal.meal} • {meal.calories} kcal • P:{meal.protein}g C:{meal.carbs}g F:{meal.fat}g</div>
+                </div>
+                <button onClick={() => handleDeleteMeal(meal.id!)} className="text-red-400 hover:text-red-600"><X size={16} /></button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add Meal Form */}
+          {showAddMeal && (
+            <div className="bg-white rounded-lg shadow p-4 space-y-3">
+              <h3 className="font-bold">Add Meal</h3>
+              <div>
+                <label className="block text-sm font-medium mb-1">Meal</label>
+                <select value={mealForm.meal} onChange={(e) => setMealForm({ ...mealForm, meal: e.target.value })} className="w-full p-3 border rounded-lg">
+                  <option>Breakfast</option><option>Snack AM</option><option>Lunch</option><option>Snack PM</option><option>Dinner</option><option>Post-Workout</option>
+                </select>
+              </div>
+              <div><label className="block text-sm font-medium mb-1">Food</label><input type="text" value={mealForm.food} onChange={(e) => setMealForm({ ...mealForm, food: e.target.value })} className="w-full p-3 border rounded-lg" placeholder="e.g. Chicken rice bowl" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-sm font-medium mb-1">Calories</label><input type="number" value={mealForm.calories || ''} onChange={(e) => setMealForm({ ...mealForm, calories: +e.target.value })} className="w-full p-3 border rounded-lg" /></div>
+                <div><label className="block text-sm font-medium mb-1">Protein (g)</label><input type="number" value={mealForm.protein || ''} onChange={(e) => setMealForm({ ...mealForm, protein: +e.target.value })} className="w-full p-3 border rounded-lg" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-sm font-medium mb-1">Carbs (g)</label><input type="number" value={mealForm.carbs || ''} onChange={(e) => setMealForm({ ...mealForm, carbs: +e.target.value })} className="w-full p-3 border rounded-lg" /></div>
+                <div><label className="block text-sm font-medium mb-1">Fat (g)</label><input type="number" value={mealForm.fat || ''} onChange={(e) => setMealForm({ ...mealForm, fat: +e.target.value })} className="w-full p-3 border rounded-lg" /></div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setShowAddMeal(false)} className="flex-1 py-2 border rounded-lg font-semibold">Cancel</button>
+                <button onClick={handleAddMeal} className="flex-1 py-2 bg-green-600 text-white rounded-lg font-semibold">Add</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// BOTTOM NAV — 6 tabs
 // ============================================================================
 
 const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string; setActiveTab: (t: string) => void }) => (
   <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-    <div className="grid grid-cols-5 gap-1 p-2">
+    <div className="grid grid-cols-6 gap-0.5 p-1.5">
       {[
         { id: 'home', icon: TrendingUp, label: 'Home' },
         { id: 'calendar', icon: Calendar, label: 'Calendar' },
         { id: 'log', icon: Plus, label: 'Log' },
         { id: 'plan', icon: Target, label: 'Plan' },
+        { id: 'nutrition', icon: UtensilsCrossed, label: 'Food' },
         { id: 'coach', icon: Brain, label: 'Coach' },
       ].map(({ id, icon: Icon, label }) => (
         <button key={id} onClick={() => setActiveTab(id)}
-          className={`flex flex-col items-center p-2 rounded ${activeTab === id ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}>
-          <Icon size={id === 'log' ? 24 : 20} />
-          <span className="text-xs mt-1">{label}</span>
+          className={`flex flex-col items-center py-1.5 px-1 rounded ${activeTab === id ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}>
+          <Icon size={id === 'log' ? 22 : 18} />
+          <span className="text-[10px] mt-0.5">{label}</span>
         </button>
       ))}
     </div>
