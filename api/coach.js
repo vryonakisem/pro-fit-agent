@@ -163,4 +163,3 @@ function buildSystemPrompt(ctx, mode) {
 
   return sections.join('\n');
 }
-}
