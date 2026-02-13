@@ -61,6 +61,14 @@ interface OnboardingData {
   trainingBackground?: string;
   goalType?: string;
   raceDate?: string;
+  raceLocation?: string;
+  raceName?: string;
+  raceCost?: string;
+  raceWebsite?: string;
+  raceAccommodation?: string;
+  raceWeather?: string;
+  raceTravel?: string;
+  raceNotes?: string;
   priority?: string;
   hoursPerWeek?: number;
   poolDaysPerWeek?: number;
@@ -103,6 +111,14 @@ function onboardingToDb(data: OnboardingData, userId: string) {
     training_background: data.trainingBackground || null,
     goal_type: data.goalType || null,
     race_date: data.raceDate || null,
+    race_location: data.raceLocation || null,
+    race_name: data.raceName || null,
+    race_cost: data.raceCost || null,
+    race_website: data.raceWebsite || null,
+    race_accommodation: data.raceAccommodation || null,
+    race_weather: data.raceWeather || null,
+    race_travel: data.raceTravel || null,
+    race_notes: data.raceNotes || null,
     priority: data.priority || null,
     hours_per_week: data.hoursPerWeek || null,
     pool_days_per_week: data.poolDaysPerWeek || null,
@@ -124,6 +140,14 @@ function onboardingFromDb(row: any): OnboardingData {
     trainingBackground: row.training_background,
     goalType: row.goal_type,
     raceDate: row.race_date,
+    raceLocation: row.race_location,
+    raceName: row.race_name,
+    raceCost: row.race_cost,
+    raceWebsite: row.race_website,
+    raceAccommodation: row.race_accommodation,
+    raceWeather: row.race_weather,
+    raceTravel: row.race_travel,
+    raceNotes: row.race_notes,
     priority: row.priority,
     hoursPerWeek: row.hours_per_week,
     poolDaysPerWeek: row.pool_days_per_week,
@@ -137,6 +161,23 @@ function onboardingFromDb(row: any): OnboardingData {
 // ============================================================================
 // ERROR HANDLING
 // ============================================================================
+
+// Format race date nicely: "2026-09-21" → "Sept 21st, 2026"
+function formatRaceDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+  const day = d.getDate();
+  const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+  return `${months[d.getMonth()]} ${day}${suffix}, ${d.getFullYear()}`;
+}
+
+// Generate Unsplash image URL for race location
+function getRaceImageUrl(location: string): string {
+  if (!location) return '';
+  const query = encodeURIComponent(location + ' landscape');
+  return `https://source.unsplash.com/800x400/?${query}`;
+}
 
 async function safeQuery<T>(
   queryFn: () => Promise<{ data: T | null; error: any }>,
@@ -1028,16 +1069,36 @@ const HomeScreen = ({ user, onboarding, plan, projection, realism, plannedSessio
 
   return (
     <div className="p-4 space-y-4">
-      <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-3"><h2 className="font-bold text-xl">Race Goal Progress</h2><Target size={28} /></div>
-        <div className="text-4xl font-bold mb-1">{weeksToRace} weeks</div>
-        <div className="text-sm opacity-90 mb-3">Ironman 70.3 • {onboarding.raceDate}</div>
-        {projection && <div className="bg-white bg-opacity-20 rounded px-3 py-2 text-sm mb-2">📊 Projected: {projection.time}</div>}
-        <div className="flex gap-2">
-          <div className="bg-white bg-opacity-20 rounded px-3 py-1 text-xs">{plan?.phase || 'Base'} Phase</div>
-          <div className="bg-white bg-opacity-20 rounded px-3 py-1 text-xs">📈 {compliance}% Compliance</div>
+      {onboarding.raceLocation ? (
+        <div className="relative rounded-lg shadow overflow-hidden" style={{ minHeight: 180 }}>
+          <div className="absolute inset-0 bg-cover bg-center" style={{
+            backgroundImage: `url(${getRaceImageUrl(onboarding.raceLocation)})`,
+            filter: 'brightness(0.35) grayscale(0.7)',
+          }} />
+          <div className="relative z-10 p-6 text-white">
+            <div className="flex items-center justify-between mb-3"><h2 className="font-bold text-xl">Race Goal Progress</h2><Target size={28} /></div>
+            <div className="text-4xl font-bold mb-1">{weeksToRace} weeks</div>
+            <div className="text-sm opacity-90 mb-1">Ironman 70.3 • {formatRaceDate(onboarding.raceDate)}</div>
+            <div className="text-xs opacity-70 mb-3">📍 {onboarding.raceLocation}</div>
+            {projection && <div className="bg-white bg-opacity-20 rounded px-3 py-2 text-sm mb-2">📊 Projected: {projection.time}</div>}
+            <div className="flex gap-2">
+              <div className="bg-white bg-opacity-20 rounded px-3 py-1 text-xs">{plan?.phase || 'Base'} Phase</div>
+              <div className="bg-white bg-opacity-20 rounded px-3 py-1 text-xs">📈 {compliance}% Compliance</div>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between mb-3"><h2 className="font-bold text-xl">Race Goal Progress</h2><Target size={28} /></div>
+          <div className="text-4xl font-bold mb-1">{weeksToRace} weeks</div>
+          <div className="text-sm opacity-90 mb-3">Ironman 70.3 • {formatRaceDate(onboarding.raceDate)}</div>
+          {projection && <div className="bg-white bg-opacity-20 rounded px-3 py-2 text-sm mb-2">📊 Projected: {projection.time}</div>}
+          <div className="flex gap-2">
+            <div className="bg-white bg-opacity-20 rounded px-3 py-1 text-xs">{plan?.phase || 'Base'} Phase</div>
+            <div className="bg-white bg-opacity-20 rounded px-3 py-1 text-xs">📈 {compliance}% Compliance</div>
+          </div>
+        </div>
+      )}
       <PhaseTimeline onboarding={onboarding} plan={plan} />
       <MilestonesCard milestones={milestones} />
       <div className="bg-white rounded-lg shadow p-4">
@@ -1338,7 +1399,7 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
     <div className="p-4 space-y-4">
       <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow p-5">
         <div className="flex items-center justify-between mb-2"><h2 className="font-bold text-xl">Training Plan</h2><Target size={28} /></div>
-        <div className="text-sm opacity-90 mb-3">{plan?.phase || 'Base'} Phase • Race: {onboarding.raceDate}</div>
+        <div className="text-sm opacity-90 mb-3">{plan?.phase || 'Base'} Phase • Race: {formatRaceDate(onboarding.raceDate)}</div>
         <div className="grid grid-cols-4 gap-2 text-center">
           <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_swim_sessions || 3}</div><div className="text-xs opacity-80">Swims/wk</div></div>
           <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_bike_km || 60}</div><div className="text-xs opacity-80">Bike km/wk</div></div>
@@ -1502,7 +1563,10 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
       },
       recentBody: bodyMetrics.slice(0, 5),
       recentSessions: trainingSessions.slice(0, 7),
-      plannedSessionsList: plannedSessions.filter((s: PlannedSession) => s.status === 'planned' && new Date(s.date) >= new Date()).slice(0, 14),
+      plannedSessionsList: plannedSessions.filter((s: PlannedSession) => {
+        const todayStr = new Date().toISOString().split('T')[0];
+        return s.status === 'planned' && s.date >= todayStr;
+      }).slice(0, 14),
     };
   };
 
@@ -1783,6 +1847,14 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
     trainingBackground: onboarding.trainingBackground || 'beginner',
     goalType: onboarding.goalType || 'finish',
     raceDate: onboarding.raceDate || '',
+    raceLocation: onboarding.raceLocation || '',
+    raceName: onboarding.raceName || '',
+    raceCost: onboarding.raceCost || '',
+    raceWebsite: onboarding.raceWebsite || '',
+    raceAccommodation: onboarding.raceAccommodation || '',
+    raceWeather: onboarding.raceWeather || '',
+    raceTravel: onboarding.raceTravel || '',
+    raceNotes: onboarding.raceNotes || '',
     priority: onboarding.priority || 'balanced',
     hoursPerWeek: onboarding.hoursPerWeek || '',
     poolDaysPerWeek: onboarding.poolDaysPerWeek || '',
@@ -1841,6 +1913,19 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
           { value: 'run', label: 'Run' },
           { value: 'balanced', label: 'Balanced' },
         ]},
+      ],
+    },
+    {
+      title: 'Race Information',
+      fields: [
+        { key: 'raceName', label: 'Race Name', type: 'text' },
+        { key: 'raceLocation', label: 'Location', type: 'text' },
+        { key: 'raceCost', label: 'Entry Cost', type: 'text' },
+        { key: 'raceWebsite', label: 'Race Website', type: 'text' },
+        { key: 'raceWeather', label: 'Expected Weather', type: 'text' },
+        { key: 'raceTravel', label: 'Travel Plans', type: 'text' },
+        { key: 'raceAccommodation', label: 'Accommodation', type: 'text' },
+        { key: 'raceNotes', label: 'Notes', type: 'text' },
       ],
     },
     {
@@ -1924,7 +2009,7 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
                     )}
                   </span>
                 ) : (
-                  <div className="w-40">
+                  <div className={field.type === 'text' ? 'w-full mt-1' : 'w-40'}>
                     {field.type === 'toggle' ? (
                       <button onClick={() => setForm({ ...form, [field.key]: !(form as any)[field.key] })}
                         className={`w-12 h-6 rounded-full relative transition-colors ${(form as any)[field.key] ? 'bg-green-500' : 'bg-gray-300'}`}>
@@ -1935,6 +2020,12 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
                         className="w-full p-2 border rounded-lg text-sm text-right">
                         {field.options?.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
+                    ) : field.type === 'text' ? (
+                      <input type="text"
+                        value={(form as any)[field.key] || ''}
+                        onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+                        placeholder={`Enter ${field.label.toLowerCase()}...`}
+                        className="w-full p-2 border rounded-lg text-sm" />
                     ) : (
                       <div className="flex items-center gap-1">
                         <input type={field.type === 'date' ? 'date' : 'number'}
