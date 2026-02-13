@@ -1458,8 +1458,8 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
     raceDate: onboarding.raceDate || '',
     priority: onboarding.priority || 'balanced',
     hoursPerWeek: onboarding.hoursPerWeek || '',
-    poolDaysPerWeek: onboarding.poolDaysPerWeek || '',
-    gymAccess: onboarding.gymAccess ?? true,
+    poolDays: onboarding.poolDays || '',
+    hasGym: onboarding.hasGym ?? true,
     canSwim1900m: onboarding.canSwim1900m ?? false,
     fiveKTime: onboarding.fiveKTime || '',
     ftp: onboarding.ftp || '',
@@ -1520,8 +1520,8 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
       title: 'Training Availability',
       fields: [
         { key: 'hoursPerWeek', label: 'Hours/week', type: 'number', unit: 'hrs' },
-        { key: 'poolDaysPerWeek', label: 'Pool days/week', type: 'number' },
-        { key: 'gymAccess', label: 'Gym access', type: 'toggle' },
+        { key: 'poolDays', label: 'Pool days/week', type: 'number' },
+        { key: 'hasGym', label: 'Gym access', type: 'toggle' },
       ],
     },
     {
@@ -1550,7 +1550,7 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
           </button>
         ) : (
           <div className="flex gap-2">
-            <button onClick={() => { setEditing(false); setForm({ age: onboarding.age || '', weight: onboarding.weight || '', height: onboarding.height || '', trainingBackground: onboarding.trainingBackground || 'beginner', goalType: onboarding.goalType || 'finish', raceDate: onboarding.raceDate || '', priority: onboarding.priority || 'balanced', hoursPerWeek: onboarding.hoursPerWeek || '', poolDaysPerWeek: onboarding.poolDaysPerWeek || '', gymAccess: onboarding.gymAccess ?? true, canSwim1900m: onboarding.canSwim1900m ?? false, fiveKTime: onboarding.fiveKTime || '', ftp: onboarding.ftp || '' }); }}
+            <button onClick={() => { setEditing(false); setForm({ age: onboarding.age || '', weight: onboarding.weight || '', height: onboarding.height || '', trainingBackground: onboarding.trainingBackground || 'beginner', goalType: onboarding.goalType || 'finish', raceDate: onboarding.raceDate || '', priority: onboarding.priority || 'balanced', hoursPerWeek: onboarding.hoursPerWeek || '', poolDays: onboarding.poolDays || '', hasGym: onboarding.hasGym ?? true, canSwim1900m: onboarding.canSwim1900m ?? false, fiveKTime: onboarding.fiveKTime || '', ftp: onboarding.ftp || '' }); }}
               className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
             <button onClick={handleSave} disabled={saving}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
