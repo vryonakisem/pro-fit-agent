@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, TrendingUp, Brain, Target, Plus, ChevronLeft, ChevronRight,
-  X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw, UtensilsCrossed, Lock, Edit3, Save,
-  Smartphone, Copy, Flag, Award, MessageCircle, Palette, ChevronDown
+  X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw, UtensilsCrossed, Lock, Edit3, Save
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
@@ -788,48 +787,11 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate, userPrefs, 
       </div>
       {showMenu && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setShowMenu(false)}>
-          <div className="absolute right-4 top-16 bg-white rounded-xl shadow-2xl w-72 py-2 overflow-hidden" onClick={(e: any) => e.stopPropagation()}>
-            {/* User Info */}
-            <div className="px-4 py-3 border-b flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold"
-                style={{ backgroundColor: userPrefs.avatar_color || '#6366f1', color: 'white' }}>
-                {userPrefs.avatar_emoji || initials}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold truncate">{user.user_metadata?.full_name || user.email}</div>
-                <div className="text-xs text-gray-500 truncate">{user.email}</div>
-              </div>
-            </div>
-
-            {/* Emoji Picker Toggle */}
-            <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm">
-              <Palette size={18} className="text-purple-500" /><span>Change Avatar</span>
-              <ChevronDown size={14} className={`ml-auto text-gray-400 transition-transform ${showEmojiPicker ? 'rotate-180' : ''}`} />
-            </button>
-
-            {showEmojiPicker && (
-              <div className="px-4 py-2 border-t border-b bg-gray-50">
-                <div className="grid grid-cols-8 gap-1">
-                  {['🏃','🚴','🏊','💪','🧘','⚡','🔥','🌟','🎯','🏆','🥇','🦈','🐎','🦅','🐺','🦁','😎','🤘','✌️','🙌','💎','🌊','🏔️','🎪'].map(emoji => (
-                    <button key={emoji} onClick={() => handleEmojiSelect(emoji)}
-                      className={`text-xl p-1.5 rounded-lg hover:bg-purple-100 transition-colors ${userPrefs.avatar_emoji === emoji ? 'bg-purple-200 ring-2 ring-purple-400' : ''}`}>
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <button onClick={() => { onNavigate('account'); setShowMenu(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm">
-              <Settings size={18} className="text-gray-500" /><span>Profile Settings</span>
-            </button>
-            <button onClick={() => { setShowWhatsApp(true); setShowMenu(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm">
-              <MessageCircle size={18} className="text-green-500" /><span>Connect WhatsApp</span>
-            </button>
-            <div className="border-t my-1"></div>
-            <button onClick={onLogout} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm text-red-600">
-              <LogOut size={18} /><span>Log Out</span>
-            </button>
+          <div className="absolute right-4 top-16 bg-white rounded-lg shadow-xl w-64 py-2" onClick={(e: any) => e.stopPropagation()}>
+            <div className="px-4 py-3 border-b"><div className="font-semibold">{user.user_metadata?.full_name || user.email}</div><div className="text-sm text-gray-600">{user.email}</div></div>
+            <button onClick={() => { onNavigate('account'); setShowMenu(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3"><Settings size={18} /><span>Profile Settings</span></button>
+            <div className="border-t my-2"></div>
+            <button onClick={onLogout} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-red-600"><LogOut size={18} /><span>Log Out</span></button>
           </div>
         </div>
       )}
@@ -1741,8 +1703,8 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
     raceDate: onboarding.raceDate || '',
     priority: onboarding.priority || 'balanced',
     hoursPerWeek: onboarding.hoursPerWeek || '',
-    poolDaysPerWeek: onboarding.poolDaysPerWeek || '',
-    gymAccess: onboarding.gymAccess ?? true,
+    poolDays: onboarding.poolDays || '',
+    hasGym: onboarding.hasGym ?? true,
     canSwim1900m: onboarding.canSwim1900m ?? false,
     fiveKTime: onboarding.fiveKTime || '',
     ftp: onboarding.ftp || '',
@@ -1803,8 +1765,8 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
       title: 'Training Availability',
       fields: [
         { key: 'hoursPerWeek', label: 'Hours/week', type: 'number', unit: 'hrs' },
-        { key: 'poolDaysPerWeek', label: 'Pool days/week', type: 'number' },
-        { key: 'gymAccess', label: 'Gym access', type: 'toggle' },
+        { key: 'poolDays', label: 'Pool days/week', type: 'number' },
+        { key: 'hasGym', label: 'Gym access', type: 'toggle' },
       ],
     },
     {
@@ -1833,7 +1795,7 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
           </button>
         ) : (
           <div className="flex gap-2">
-            <button onClick={() => { setEditing(false); setForm({ age: onboarding.age || '', weight: onboarding.weight || '', height: onboarding.height || '', trainingBackground: onboarding.trainingBackground || 'beginner', goalType: onboarding.goalType || 'finish', raceDate: onboarding.raceDate || '', priority: onboarding.priority || 'balanced', hoursPerWeek: onboarding.hoursPerWeek || '', poolDaysPerWeek: onboarding.poolDaysPerWeek || '', gymAccess: onboarding.gymAccess ?? true, canSwim1900m: onboarding.canSwim1900m ?? false, fiveKTime: onboarding.fiveKTime || '', ftp: onboarding.ftp || '' }); }}
+            <button onClick={() => { setEditing(false); setForm({ age: onboarding.age || '', weight: onboarding.weight || '', height: onboarding.height || '', trainingBackground: onboarding.trainingBackground || 'beginner', goalType: onboarding.goalType || 'finish', raceDate: onboarding.raceDate || '', priority: onboarding.priority || 'balanced', hoursPerWeek: onboarding.hoursPerWeek || '', poolDays: onboarding.poolDays || '', hasGym: onboarding.hasGym ?? true, canSwim1900m: onboarding.canSwim1900m ?? false, fiveKTime: onboarding.fiveKTime || '', ftp: onboarding.ftp || '' }); }}
               className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
             <button onClick={handleSave} disabled={saving}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
