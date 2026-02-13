@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, TrendingUp, Brain, Target, Plus, ChevronLeft, ChevronRight,
-  X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw, UtensilsCrossed, Lock
+  X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw, UtensilsCrossed, Lock, Edit3, Save
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
@@ -416,6 +416,7 @@ const ProFitAgentV5 = () => {
           {activeScreen === 'plan' && <PlanScreen plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} onboarding={onboardingData} />}
           {activeScreen === 'coach' && <CoachScreen onboarding={onboardingData} plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} trainingSessions={trainingSessions} bodyMetrics={bodyMetrics} />}
           {activeScreen === 'nutrition' && <NutritionScreen onboarding={onboardingData} plan={plan} trainingSessions={trainingSessions} />}
+          {activeScreen === 'account' && <AccountScreen user={user} onboarding={onboardingData} setOnboarding={setOnboardingData} setActiveScreen={setActiveScreen} />}
         </div>
         <BottomNav activeTab={activeScreen} setActiveTab={setActiveScreen} />
       </div>
@@ -721,7 +722,7 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate }: any) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setShowMenu(false)}>
           <div className="absolute right-4 top-16 bg-white rounded-lg shadow-xl w-64 py-2" onClick={(e: any) => e.stopPropagation()}>
             <div className="px-4 py-3 border-b"><div className="font-semibold">{user.user_metadata?.full_name || user.email}</div><div className="text-sm text-gray-600">{user.email}</div></div>
-            <button onClick={() => { onNavigate('account'); setShowMenu(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3"><User size={18} /><span>Account</span></button>
+            <button onClick={() => { onNavigate('account'); setShowMenu(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3"><Settings size={18} /><span>Profile Settings</span></button>
             <div className="border-t my-2"></div>
             <button onClick={onLogout} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-red-600"><LogOut size={18} /><span>Log Out</span></button>
           </div>
@@ -1435,6 +1436,213 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
             </div>
           </div>
         </>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// ACCOUNT / PROFILE SETTINGS SCREEN
+// ============================================================================
+
+const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any) => {
+  const { showToast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    age: onboarding.age || '',
+    weight: onboarding.weight || '',
+    height: onboarding.height || '',
+    trainingBackground: onboarding.trainingBackground || 'beginner',
+    goalType: onboarding.goalType || 'finish',
+    raceDate: onboarding.raceDate || '',
+    priority: onboarding.priority || 'balanced',
+    hoursPerWeek: onboarding.hoursPerWeek || '',
+    poolDaysPerWeek: onboarding.poolDaysPerWeek || '',
+    gymAccess: onboarding.gymAccess ?? true,
+    canSwim1900m: onboarding.canSwim1900m ?? false,
+    fiveKTime: onboarding.fiveKTime || '',
+    ftp: onboarding.ftp || '',
+  });
+
+  const handleSave = async () => {
+    setSaving(true);
+    const updatedOnboarding = { ...onboarding, ...form };
+    const dbData = onboardingToDb(updatedOnboarding, user.id);
+    const { error } = await safeQuery(
+      () => supabase.from('onboarding_data').upsert(dbData, { onConflict: 'user_id' }),
+      'updateProfile'
+    );
+    if (!error) {
+      setOnboarding(updatedOnboarding);
+      showToast('Profile updated!', 'success');
+      setEditing(false);
+    } else {
+      showToast('Failed to save', 'error');
+    }
+    setSaving(false);
+  };
+
+  const fieldGroups = [
+    {
+      title: 'Personal Info',
+      fields: [
+        { key: 'age', label: 'Age', type: 'number', unit: 'years' },
+        { key: 'weight', label: 'Weight', type: 'number', unit: 'kg', step: '0.1' },
+        { key: 'height', label: 'Height', type: 'number', unit: 'cm' },
+        { key: 'trainingBackground', label: 'Experience', type: 'select', options: [
+          { value: 'beginner', label: 'Beginner (0-1 years)' },
+          { value: 'intermediate', label: 'Intermediate (1-3 years)' },
+          { value: 'advanced', label: 'Advanced (3+ years)' },
+        ]},
+      ],
+    },
+    {
+      title: 'Race Goals',
+      fields: [
+        { key: 'goalType', label: 'Goal', type: 'select', options: [
+          { value: 'finish', label: 'Finish the race' },
+          { value: 'sub6', label: 'Finish under 6 hours' },
+          { value: 'sub530', label: 'Finish under 5:30' },
+          { value: 'sub5', label: 'Finish under 5 hours' },
+          { value: 'pb', label: 'Personal best' },
+        ]},
+        { key: 'raceDate', label: 'Race Date', type: 'date' },
+        { key: 'priority', label: 'Priority Discipline', type: 'select', options: [
+          { value: 'swim', label: 'Swim' },
+          { value: 'bike', label: 'Bike' },
+          { value: 'run', label: 'Run' },
+          { value: 'balanced', label: 'Balanced' },
+        ]},
+      ],
+    },
+    {
+      title: 'Training Availability',
+      fields: [
+        { key: 'hoursPerWeek', label: 'Hours/week', type: 'number', unit: 'hrs' },
+        { key: 'poolDaysPerWeek', label: 'Pool days/week', type: 'number' },
+        { key: 'gymAccess', label: 'Gym access', type: 'toggle' },
+      ],
+    },
+    {
+      title: 'Fitness Benchmarks',
+      fields: [
+        { key: 'canSwim1900m', label: 'Can swim 1.9km', type: 'toggle' },
+        { key: 'fiveKTime', label: '5K time', type: 'number', unit: 'seconds' },
+        { key: 'ftp', label: 'FTP', type: 'number', unit: 'watts' },
+      ],
+    },
+  ];
+
+  return (
+    <div className="p-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setActiveScreen('home')} className="p-2 hover:bg-gray-100 rounded-lg">
+            <ChevronLeft size={20} />
+          </button>
+          <h2 className="text-xl font-bold text-gray-900">Profile Settings</h2>
+        </div>
+        {!editing ? (
+          <button onClick={() => setEditing(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
+            <Edit3 size={14} /> Edit
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button onClick={() => { setEditing(false); setForm({ age: onboarding.age || '', weight: onboarding.weight || '', height: onboarding.height || '', trainingBackground: onboarding.trainingBackground || 'beginner', goalType: onboarding.goalType || 'finish', raceDate: onboarding.raceDate || '', priority: onboarding.priority || 'balanced', hoursPerWeek: onboarding.hoursPerWeek || '', poolDaysPerWeek: onboarding.poolDaysPerWeek || '', gymAccess: onboarding.gymAccess ?? true, canSwim1900m: onboarding.canSwim1900m ?? false, fiveKTime: onboarding.fiveKTime || '', ftp: onboarding.ftp || '' }); }}
+              className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
+              {saving ? <Loader className="animate-spin" size={14} /> : <Save size={14} />}
+              Save
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* User Info Card */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl p-5">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-xl font-bold">
+            {(user.user_metadata?.full_name || user.email || '?').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+          </div>
+          <div>
+            <h3 className="font-bold text-lg">{user.user_metadata?.full_name || 'Athlete'}</h3>
+            <p className="text-sm opacity-80">{user.email}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Field Groups */}
+      {fieldGroups.map((group) => (
+        <div key={group.title} className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 border-b">
+            <h3 className="font-bold text-sm text-gray-700">{group.title}</h3>
+          </div>
+          <div className="divide-y">
+            {group.fields.map((field: any) => (
+              <div key={field.key} className="px-4 py-3 flex items-center justify-between">
+                <label className="text-sm text-gray-600 font-medium">{field.label}</label>
+                {!editing ? (
+                  <span className="text-sm font-semibold text-gray-900">
+                    {field.type === 'toggle' ? (
+                      (form as any)[field.key] ? <span className="text-green-600">Yes</span> : <span className="text-gray-400">No</span>
+                    ) : field.type === 'select' ? (
+                      field.options?.find((o: any) => o.value === (form as any)[field.key])?.label || (form as any)[field.key] || '—'
+                    ) : field.key === 'fiveKTime' && (form as any)[field.key] ? (
+                      `${Math.floor((form as any)[field.key] / 60)}:${String((form as any)[field.key] % 60).padStart(2, '0')}`
+                    ) : (
+                      (form as any)[field.key] ? `${(form as any)[field.key]}${field.unit ? ' ' + field.unit : ''}` : '—'
+                    )}
+                  </span>
+                ) : (
+                  <div className="w-40">
+                    {field.type === 'toggle' ? (
+                      <button onClick={() => setForm({ ...form, [field.key]: !(form as any)[field.key] })}
+                        className={`w-12 h-6 rounded-full relative transition-colors ${(form as any)[field.key] ? 'bg-green-500' : 'bg-gray-300'}`}>
+                        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${(form as any)[field.key] ? 'left-6' : 'left-0.5'}`} />
+                      </button>
+                    ) : field.type === 'select' ? (
+                      <select value={(form as any)[field.key]} onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+                        className="w-full p-2 border rounded-lg text-sm text-right">
+                        {field.options?.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <input type={field.type === 'date' ? 'date' : 'number'}
+                          step={field.step || '1'}
+                          value={(form as any)[field.key] || ''}
+                          onChange={(e) => setForm({ ...form, [field.key]: field.type === 'number' ? (e.target.value ? +e.target.value : '') : e.target.value })}
+                          className="w-full p-2 border rounded-lg text-sm text-right" />
+                        {field.unit && <span className="text-xs text-gray-400 whitespace-nowrap">{field.unit}</span>}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* PIN Section for Manolis */}
+      {user.email === MANOLIS_EMAIL && (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 border-b">
+            <h3 className="font-bold text-sm text-gray-700">Security</h3>
+          </div>
+          <div className="px-4 py-3 flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-600">Login PIN</div>
+              <div className="text-xs text-gray-400">Change your 6-digit PIN</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Lock size={16} className="text-gray-400" />
+              <span className="text-sm font-semibold text-gray-500">••••••</span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
