@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, TrendingUp, Brain, Target, Plus, ChevronLeft, ChevronRight,
-  X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw, UtensilsCrossed, Lock
+  X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw, UtensilsCrossed, Lock, Edit3, Save,
+  Smartphone, Copy, Flag, Award, MessageCircle, Palette, ChevronDown
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
@@ -67,6 +68,24 @@ interface OnboardingData {
   canSwim1900m?: boolean;
   fiveKTime?: number;
   ftp?: number;
+}
+
+interface Milestone {
+  id: string;
+  user_id: string;
+  title: string;
+  date: string | null;
+  rule_type: string;
+  rule_json: any;
+  status: string;
+  achieved_at: string | null;
+  phase: string | null;
+  icon: string;
+}
+
+interface UserPrefs {
+  avatar_emoji: string | null;
+  avatar_color: string;
 }
 
 // ============================================================================
@@ -290,6 +309,8 @@ const ProFitAgentV5 = () => {
   const [projection, setProjection] = useState<any>(null);
   const [plan, setPlan] = useState<any>(null);
   const [realism, setRealism] = useState<any>(null);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [userPrefs, setUserPrefs] = useState<UserPrefs>({ avatar_emoji: null, avatar_color: '#6366f1' });
 
   useEffect(() => {
     checkUser();
@@ -310,20 +331,28 @@ const ProFitAgentV5 = () => {
     const { data: onboardingRow } = await safeQuery(
       () => supabase.from('onboarding_data').select('*').eq('user_id', userId).maybeSingle(), 'loadOnboarding'
     );
+    // Load user preferences (avatar etc)
+    const { data: prefsRow } = await safeQuery(
+      () => supabase.from('user_preferences').select('avatar_emoji, avatar_color').eq('user_id', userId).maybeSingle(), 'loadPrefs'
+    );
+    if (prefsRow) setUserPrefs({ avatar_emoji: prefsRow.avatar_emoji, avatar_color: prefsRow.avatar_color || '#6366f1' });
+
     if (onboardingRow) {
       const onboarding = onboardingFromDb(onboardingRow);
       setOnboardingData(onboarding);
       if (onboarding.completed) {
-        const [planRes, sessionsRes, trainingRes, bodyRes] = await Promise.all([
+        const [planRes, sessionsRes, trainingRes, bodyRes, milestonesRes] = await Promise.all([
           safeQuery(() => supabase.from('training_plans').select('*').eq('user_id', userId).maybeSingle(), 'loadPlan'),
           safeQuery(() => supabase.from('planned_sessions').select('*').eq('user_id', userId).order('date', { ascending: true }), 'loadPlanned'),
           safeQuery(() => supabase.from('training_sessions').select('*').eq('user_id', userId).order('date', { ascending: false }), 'loadTraining'),
           safeQuery(() => supabase.from('body_metrics').select('*').eq('user_id', userId).order('date', { ascending: false }), 'loadBody'),
+          safeQuery(() => supabase.from('milestones').select('*').eq('user_id', userId).order('date', { ascending: true }), 'loadMilestones'),
         ]);
         if (planRes.data) setPlan(planRes.data);
         if (sessionsRes.data) setPlannedSessions(sessionsRes.data as any);
         if (trainingRes.data) setTrainingSessions(trainingRes.data as any);
         if (bodyRes.data) setBodyMetrics(bodyRes.data as any);
+        if (milestonesRes.data) setMilestones(milestonesRes.data as any);
       }
     }
   };
@@ -355,6 +384,32 @@ const ProFitAgentV5 = () => {
     setProjection(PlanningEngine.projectFinishTime(data));
     setRealism(PlanningEngine.checkGoalRealism(data));
     setOnboardingData({ ...data, completed: true });
+
+    // Generate milestones
+    if (data.raceDate) {
+      const raceDate = new Date(data.raceDate);
+      const now = new Date();
+      const totalWeeks = Math.floor((raceDate.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      const phaseDates = {
+        base: new Date(now),
+        build: new Date(now.getTime() + Math.max(1, totalWeeks - 12) * 7 * 24 * 60 * 60 * 1000),
+        peak: new Date(raceDate.getTime() - 3 * 7 * 24 * 60 * 60 * 1000),
+        taper: new Date(raceDate.getTime() - 1 * 7 * 24 * 60 * 60 * 1000),
+      };
+      const milestoneRows = [
+        { user_id: user.id, title: 'Training begins', date: now.toISOString().split('T')[0], rule_type: 'date_based', rule_json: {}, status: 'achieved', achieved_at: now.toISOString(), phase: 'Base', icon: '🚀' },
+        { user_id: user.id, title: 'Build phase starts', date: phaseDates.build.toISOString().split('T')[0], rule_type: 'date_based', rule_json: {}, status: 'upcoming', achieved_at: null, phase: 'Build', icon: '💪' },
+        { user_id: user.id, title: 'Peak phase starts', date: phaseDates.peak.toISOString().split('T')[0], rule_type: 'date_based', rule_json: {}, status: 'upcoming', achieved_at: null, phase: 'Peak', icon: '⚡' },
+        { user_id: user.id, title: 'Taper begins', date: phaseDates.taper.toISOString().split('T')[0], rule_type: 'date_based', rule_json: {}, status: 'upcoming', achieved_at: null, phase: 'Taper', icon: '🧘' },
+        { user_id: user.id, title: 'Race Day!', date: data.raceDate, rule_type: 'date_based', rule_json: {}, status: 'upcoming', achieved_at: null, phase: 'Race', icon: '🏁' },
+        { user_id: user.id, title: 'First 2-hour ride', date: null, rule_type: 'achievement_based', rule_json: { sport: 'Bike', min_duration: 120 }, status: 'upcoming', achieved_at: null, phase: null, icon: '🚴' },
+        { user_id: user.id, title: 'First continuous 1.9km swim', date: null, rule_type: 'achievement_based', rule_json: { sport: 'Swim', min_distance: 1900 }, status: 'upcoming', achieved_at: null, phase: null, icon: '🏊' },
+        { user_id: user.id, title: 'First 10km+ run', date: null, rule_type: 'achievement_based', rule_json: { sport: 'Run', min_distance: 10 }, status: 'upcoming', achieved_at: null, phase: null, icon: '🏃' },
+      ];
+      const { data: insertedMilestones } = await safeQuery(() => supabase.from('milestones').insert(milestoneRows).select(), 'createMilestones');
+      if (insertedMilestones) setMilestones(insertedMilestones as any);
+    }
+
     setLoading(false);
   };
 
@@ -405,17 +460,18 @@ const ProFitAgentV5 = () => {
   return (
     <ToastProvider>
       <div className="min-h-screen bg-gray-50">
-        <Header user={user} showMenu={showProfileMenu} setShowMenu={setShowProfileMenu} onLogout={handleLogout} onNavigate={setActiveScreen} />
+        <Header user={user} showMenu={showProfileMenu} setShowMenu={setShowProfileMenu} onLogout={handleLogout} onNavigate={setActiveScreen} userPrefs={userPrefs} setUserPrefs={setUserPrefs} />
         <div className="pb-20">
           {activeScreen === 'home' && (
             <HomeScreen user={user} onboarding={onboardingData} plan={plan} projection={projection}
-              realism={realism} plannedSessions={plannedSessions} trainingSessions={trainingSessions} bodyMetrics={bodyMetrics} />
+              realism={realism} plannedSessions={plannedSessions} trainingSessions={trainingSessions} bodyMetrics={bodyMetrics} milestones={milestones} />
           )}
-          {activeScreen === 'calendar' && <CalendarScreen plannedSessions={plannedSessions} />}
+          {activeScreen === 'calendar' && <CalendarScreen plannedSessions={plannedSessions} milestones={milestones} />}
           {activeScreen === 'log' && <LogScreen onLogTraining={handleLogTraining} onLogBody={handleLogBody} setActiveScreen={setActiveScreen} />}
-          {activeScreen === 'plan' && <PlanScreen plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} onboarding={onboardingData} />}
+          {activeScreen === 'plan' && <PlanScreen plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} onboarding={onboardingData} milestones={milestones} />}
           {activeScreen === 'coach' && <CoachScreen onboarding={onboardingData} plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} trainingSessions={trainingSessions} bodyMetrics={bodyMetrics} />}
           {activeScreen === 'nutrition' && <NutritionScreen onboarding={onboardingData} plan={plan} trainingSessions={trainingSessions} />}
+          {activeScreen === 'account' && <AccountScreen user={user} onboarding={onboardingData} setOnboarding={setOnboardingData} setActiveScreen={setActiveScreen} />}
         </div>
         <BottomNav activeTab={activeScreen} setActiveTab={setActiveScreen} />
       </div>
@@ -707,27 +763,248 @@ const OnboardingStep5 = ({ data, onUpdate }: any) => (
 // HEADER
 // ============================================================================
 
-const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate }: any) => {
+const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate, userPrefs, setUserPrefs }: any) => {
   const initials = (user.user_metadata?.full_name || user.email || '?').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showWhatsApp, setShowWhatsApp] = useState(false);
+
+  const handleEmojiSelect = async (emoji: string) => {
+    setUserPrefs({ ...userPrefs, avatar_emoji: emoji });
+    setShowEmojiPicker(false);
+    await safeQuery(() => supabase.from('user_preferences').update({ avatar_emoji: emoji }).eq('user_id', user.id), 'saveEmoji');
+  };
+
   return (
     <>
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg">
         <div className="flex items-center justify-between">
           <div><h1 className="text-2xl font-bold">Pro Fit Agent</h1><p className="text-sm opacity-90">Cloud Training System</p></div>
-          <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center font-bold hover:bg-opacity-30 text-sm">{initials}</button>
+          <button onClick={() => setShowMenu(!showMenu)}
+            className="w-10 h-10 rounded-full flex items-center justify-center font-bold hover:ring-2 hover:ring-white/50 text-sm transition-all"
+            style={{ backgroundColor: userPrefs.avatar_color || '#6366f1' }}>
+            {userPrefs.avatar_emoji ? <span className="text-xl">{userPrefs.avatar_emoji}</span> : initials}
+          </button>
         </div>
       </div>
       {showMenu && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setShowMenu(false)}>
-          <div className="absolute right-4 top-16 bg-white rounded-lg shadow-xl w-64 py-2" onClick={(e: any) => e.stopPropagation()}>
-            <div className="px-4 py-3 border-b"><div className="font-semibold">{user.user_metadata?.full_name || user.email}</div><div className="text-sm text-gray-600">{user.email}</div></div>
-            <button onClick={() => { onNavigate('account'); setShowMenu(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3"><User size={18} /><span>Account</span></button>
-            <div className="border-t my-2"></div>
-            <button onClick={onLogout} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-red-600"><LogOut size={18} /><span>Log Out</span></button>
+          <div className="absolute right-4 top-16 bg-white rounded-xl shadow-2xl w-72 py-2 overflow-hidden" onClick={(e: any) => e.stopPropagation()}>
+            {/* User Info */}
+            <div className="px-4 py-3 border-b flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold"
+                style={{ backgroundColor: userPrefs.avatar_color || '#6366f1', color: 'white' }}>
+                {userPrefs.avatar_emoji || initials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold truncate">{user.user_metadata?.full_name || user.email}</div>
+                <div className="text-xs text-gray-500 truncate">{user.email}</div>
+              </div>
+            </div>
+
+            {/* Emoji Picker Toggle */}
+            <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm">
+              <Palette size={18} className="text-purple-500" /><span>Change Avatar</span>
+              <ChevronDown size={14} className={`ml-auto text-gray-400 transition-transform ${showEmojiPicker ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showEmojiPicker && (
+              <div className="px-4 py-2 border-t border-b bg-gray-50">
+                <div className="grid grid-cols-8 gap-1">
+                  {['🏃','🚴','🏊','💪','🧘','⚡','🔥','🌟','🎯','🏆','🥇','🦈','🐎','🦅','🐺','🦁','😎','🤘','✌️','🙌','💎','🌊','🏔️','🎪'].map(emoji => (
+                    <button key={emoji} onClick={() => handleEmojiSelect(emoji)}
+                      className={`text-xl p-1.5 rounded-lg hover:bg-purple-100 transition-colors ${userPrefs.avatar_emoji === emoji ? 'bg-purple-200 ring-2 ring-purple-400' : ''}`}>
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button onClick={() => { onNavigate('account'); setShowMenu(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm">
+              <Settings size={18} className="text-gray-500" /><span>Profile Settings</span>
+            </button>
+            <button onClick={() => { setShowWhatsApp(true); setShowMenu(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm">
+              <MessageCircle size={18} className="text-green-500" /><span>Connect WhatsApp</span>
+            </button>
+            <div className="border-t my-1"></div>
+            <button onClick={onLogout} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm text-red-600">
+              <LogOut size={18} /><span>Log Out</span>
+            </button>
           </div>
         </div>
       )}
+
+      {/* WhatsApp Connect Modal */}
+      {showWhatsApp && <WhatsAppConnectModal user={user} onClose={() => setShowWhatsApp(false)} />}
     </>
+  );
+};
+
+// ============================================================================
+// WHATSAPP CONNECT MODAL
+// ============================================================================
+
+const WhatsAppConnectModal = ({ user, onClose }: { user: AppUser; onClose: () => void }) => {
+  const [code, setCode] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const generateCode = async () => {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/create-pairing-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      });
+      const data = await response.json();
+      if (data.code) { setCode(data.code); setExpiresAt(data.expires_at); }
+    } catch (err) { console.error('Pairing error:', err); }
+    setLoading(false);
+  };
+
+  const copyCode = () => {
+    if (code) { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={(e: any) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold flex items-center gap-2"><MessageCircle size={22} className="text-green-500" /> Connect WhatsApp</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X size={20} /></button>
+        </div>
+
+        {!code ? (
+          <div className="text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Smartphone size={28} className="text-green-600" />
+            </div>
+            <p className="text-sm text-gray-600 mb-4">Connect your WhatsApp to log workouts, check your status, and get reminders via message.</p>
+            <button onClick={generateCode} disabled={loading}
+              className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2">
+              {loading ? <Loader className="animate-spin" size={18} /> : <MessageCircle size={18} />}
+              {loading ? 'Generating...' : 'Generate Pairing Code'}
+            </button>
+          </div>
+        ) : (
+          <div className="text-center">
+            <p className="text-sm text-gray-500 mb-3">Send this code to the Pro Fit Agent WhatsApp bot:</p>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="text-4xl font-mono font-bold tracking-widest text-gray-900">{code}</div>
+              <button onClick={copyCode} className="p-2 hover:bg-gray-100 rounded-lg">
+                {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} className="text-gray-400" />}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">
+              Expires in 10 minutes{expiresAt ? ` (${new Date(expiresAt).toLocaleTimeString()})` : ''}
+            </p>
+            <div className="bg-gray-50 rounded-xl p-3 text-left text-xs text-gray-600 space-y-1">
+              <p className="font-semibold mb-1">After pairing, you can send:</p>
+              <p><code className="bg-gray-200 px-1 rounded">log run 45min 7km rpe6</code></p>
+              <p><code className="bg-gray-200 px-1 rounded">fatigue 7 sleep 6.5 weight 78</code></p>
+              <p><code className="bg-gray-200 px-1 rounded">summary</code></p>
+            </div>
+            <button onClick={generateCode} className="text-sm text-blue-600 hover:underline mt-3">Generate new code</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// PHASE TIMELINE COMPONENT
+// ============================================================================
+
+const PhaseTimeline = ({ onboarding, plan }: { onboarding: OnboardingData; plan: any }) => {
+  if (!onboarding.raceDate) return null;
+
+  const raceDate = new Date(onboarding.raceDate);
+  const now = new Date();
+  const totalDays = Math.max(1, (raceDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+  const totalWeeks = Math.floor(totalDays / 7);
+
+  const phases = [
+    { name: 'Base', color: 'bg-blue-500', weeks: Math.max(1, totalWeeks - 12) },
+    { name: 'Build', color: 'bg-orange-500', weeks: Math.min(9, Math.max(1, totalWeeks > 12 ? 9 : totalWeeks - 3)) },
+    { name: 'Peak', color: 'bg-red-500', weeks: Math.min(2, Math.max(1, totalWeeks > 3 ? 2 : 1)) },
+    { name: 'Taper', color: 'bg-green-500', weeks: 1 },
+    { name: 'Race', color: 'bg-purple-600', weeks: 0 },
+  ];
+
+  const currentPhase = plan?.phase || 'Base';
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-4">
+      <h3 className="font-bold text-sm text-gray-700 mb-3 flex items-center gap-2"><Flag size={16} className="text-purple-500" /> Training Phases</h3>
+      <div className="flex items-center gap-1 mb-2">
+        {phases.map((phase, i) => {
+          const isCurrent = phase.name === currentPhase;
+          const isPast = phases.findIndex(p => p.name === currentPhase) > i;
+          return (
+            <React.Fragment key={phase.name}>
+              <div className={`flex-1 h-2 rounded-full transition-all ${isCurrent ? phase.color : isPast ? phase.color + ' opacity-40' : 'bg-gray-200'}`} />
+              {i < phases.length - 1 && <div className="w-1" />}
+            </React.Fragment>
+          );
+        })}
+      </div>
+      <div className="flex justify-between text-[9px] text-gray-500">
+        {phases.map(phase => {
+          const isCurrent = phase.name === currentPhase;
+          return (
+            <span key={phase.name} className={`${isCurrent ? 'text-blue-600 font-bold' : ''}`}>
+              {phase.name} {isCurrent && '📍'}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// MILESTONES CARD COMPONENT
+// ============================================================================
+
+const MilestonesCard = ({ milestones }: { milestones: Milestone[] }) => {
+  const upcoming = milestones.filter(m => m.status === 'upcoming').sort((a, b) => {
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  }).slice(0, 3);
+
+  const achieved = milestones.filter(m => m.status === 'achieved').length;
+
+  if (milestones.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-sm text-gray-700 flex items-center gap-2"><Award size={16} className="text-yellow-500" /> Milestones</h3>
+        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-semibold">{achieved}/{milestones.length}</span>
+      </div>
+      <div className="space-y-2">
+        {upcoming.map(m => {
+          const daysUntil = m.date ? Math.ceil((new Date(m.date).getTime() - Date.now()) / (24 * 60 * 60 * 1000)) : null;
+          return (
+            <div key={m.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+              <span className="text-xl">{m.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-gray-800 truncate">{m.title}</div>
+                {daysUntil !== null && <div className="text-xs text-gray-500">{daysUntil <= 0 ? 'Today!' : `In ${daysUntil} days`}{m.date ? ` • ${m.date}` : ''}</div>}
+                {!m.date && <div className="text-xs text-purple-500">Achievement goal</div>}
+              </div>
+              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                <div className="w-3 h-3 rounded-full bg-gray-400" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
@@ -735,7 +1012,7 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate }: any) => {
 // HOME SCREEN
 // ============================================================================
 
-const HomeScreen = ({ user, onboarding, plan, projection, realism, plannedSessions, trainingSessions, bodyMetrics }: any) => {
+const HomeScreen = ({ user, onboarding, plan, projection, realism, plannedSessions, trainingSessions, bodyMetrics, milestones }: any) => {
   const weeksToRace = Math.max(0, Math.floor((new Date(onboarding.raceDate).getTime() - Date.now()) / (7 * 24 * 60 * 60 * 1000)));
   const today = new Date().toISOString().split('T')[0];
   const todaySessions = plannedSessions.filter((s: PlannedSession) => s.date === today);
@@ -761,6 +1038,8 @@ const HomeScreen = ({ user, onboarding, plan, projection, realism, plannedSessio
           <div className="bg-white bg-opacity-20 rounded px-3 py-1 text-xs">📈 {compliance}% Compliance</div>
         </div>
       </div>
+      <PhaseTimeline onboarding={onboarding} plan={plan} />
+      <MilestonesCard milestones={milestones} />
       <div className="bg-white rounded-lg shadow p-4">
         <h3 className="font-bold text-lg mb-3">This Week</h3>
         <div className="grid grid-cols-2 gap-3">
@@ -802,7 +1081,7 @@ const HomeScreen = ({ user, onboarding, plan, projection, realism, plannedSessio
 // CALENDAR SCREEN — Dark/Light theme, 4-week grid
 // ============================================================================
 
-const CalendarScreen = ({ plannedSessions }: any) => {
+const CalendarScreen = ({ plannedSessions, milestones }: any) => {
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(today);
   const [isDark, setIsDark] = useState(false);
@@ -900,6 +1179,7 @@ const CalendarScreen = ({ plannedSessions }: any) => {
                 const isSelected = dateStr === selectedDate;
                 const isFuture = new Date(dateStr) > new Date();
                 const { type, sports } = getDayStatus(dateStr);
+                const hasMilestone = milestones?.some((m: Milestone) => m.date === dateStr);
                 const cellClass = type === 'completed' ? t.cellCompleted : type === 'partial' ? t.cellPartial : type === 'skipped' ? t.cellSkipped : type === 'planned' && isFuture ? t.cellPlannedFuture : type === 'planned' ? t.cellPlanned : t.cellRest;
                 const textClass = isToday ? (isDark ? 'text-white' : 'text-blue-600 font-black') : type === 'completed' ? t.dayCompleted : type === 'skipped' ? t.daySkipped : isFuture ? t.dayFuture : t.dayDefault;
 
@@ -918,6 +1198,9 @@ const CalendarScreen = ({ plannedSessions }: any) => {
                     )}
                     {type === 'completed' && (
                       <div className="absolute -top-0.5 -right-0.5 bg-emerald-500 rounded-full w-3 h-3 flex items-center justify-center"><Check size={7} className="text-white" /></div>
+                    )}
+                    {hasMilestone && (
+                      <div className="absolute -top-1 -left-0.5 text-[8px]">🏁</div>
                     )}
                   </button>
                 );
@@ -1018,7 +1301,7 @@ const LogScreen = ({ onLogTraining, onLogBody, setActiveScreen }: any) => {
 // PLAN SCREEN
 // ============================================================================
 
-const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding }: any) => {
+const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, milestones }: any) => {
   const [weekOffset, setWeekOffset] = useState(0);
   const getWeekDates = (offset: number) => {
     const now = new Date(); const startOfWeek = new Date(now);
@@ -1063,6 +1346,7 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding }: a
           <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_strength_sessions || 2}</div><div className="text-xs opacity-80">Str/wk</div></div>
         </div>
       </div>
+      <PhaseTimeline onboarding={onboarding} plan={plan} />
 
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex items-center justify-between mb-3">
@@ -1435,6 +1719,213 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
             </div>
           </div>
         </>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// ACCOUNT / PROFILE SETTINGS SCREEN
+// ============================================================================
+
+const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any) => {
+  const { showToast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    age: onboarding.age || '',
+    weight: onboarding.weight || '',
+    height: onboarding.height || '',
+    trainingBackground: onboarding.trainingBackground || 'beginner',
+    goalType: onboarding.goalType || 'finish',
+    raceDate: onboarding.raceDate || '',
+    priority: onboarding.priority || 'balanced',
+    hoursPerWeek: onboarding.hoursPerWeek || '',
+    poolDaysPerWeek: onboarding.poolDaysPerWeek || '',
+    gymAccess: onboarding.gymAccess ?? true,
+    canSwim1900m: onboarding.canSwim1900m ?? false,
+    fiveKTime: onboarding.fiveKTime || '',
+    ftp: onboarding.ftp || '',
+  });
+
+  const handleSave = async () => {
+    setSaving(true);
+    const updatedOnboarding = { ...onboarding, ...form };
+    const dbData = onboardingToDb(updatedOnboarding, user.id);
+    const { error } = await safeQuery(
+      () => supabase.from('onboarding_data').upsert(dbData, { onConflict: 'user_id' }),
+      'updateProfile'
+    );
+    if (!error) {
+      setOnboarding(updatedOnboarding);
+      showToast('Profile updated!', 'success');
+      setEditing(false);
+    } else {
+      showToast('Failed to save', 'error');
+    }
+    setSaving(false);
+  };
+
+  const fieldGroups = [
+    {
+      title: 'Personal Info',
+      fields: [
+        { key: 'age', label: 'Age', type: 'number', unit: 'years' },
+        { key: 'weight', label: 'Weight', type: 'number', unit: 'kg', step: '0.1' },
+        { key: 'height', label: 'Height', type: 'number', unit: 'cm' },
+        { key: 'trainingBackground', label: 'Experience', type: 'select', options: [
+          { value: 'beginner', label: 'Beginner (0-1 years)' },
+          { value: 'intermediate', label: 'Intermediate (1-3 years)' },
+          { value: 'advanced', label: 'Advanced (3+ years)' },
+        ]},
+      ],
+    },
+    {
+      title: 'Race Goals',
+      fields: [
+        { key: 'goalType', label: 'Goal', type: 'select', options: [
+          { value: 'finish', label: 'Finish the race' },
+          { value: 'sub6', label: 'Finish under 6 hours' },
+          { value: 'sub530', label: 'Finish under 5:30' },
+          { value: 'sub5', label: 'Finish under 5 hours' },
+          { value: 'pb', label: 'Personal best' },
+        ]},
+        { key: 'raceDate', label: 'Race Date', type: 'date' },
+        { key: 'priority', label: 'Priority Discipline', type: 'select', options: [
+          { value: 'swim', label: 'Swim' },
+          { value: 'bike', label: 'Bike' },
+          { value: 'run', label: 'Run' },
+          { value: 'balanced', label: 'Balanced' },
+        ]},
+      ],
+    },
+    {
+      title: 'Training Availability',
+      fields: [
+        { key: 'hoursPerWeek', label: 'Hours/week', type: 'number', unit: 'hrs' },
+        { key: 'poolDaysPerWeek', label: 'Pool days/week', type: 'number' },
+        { key: 'gymAccess', label: 'Gym access', type: 'toggle' },
+      ],
+    },
+    {
+      title: 'Fitness Benchmarks',
+      fields: [
+        { key: 'canSwim1900m', label: 'Can swim 1.9km', type: 'toggle' },
+        { key: 'fiveKTime', label: '5K time', type: 'number', unit: 'seconds' },
+        { key: 'ftp', label: 'FTP', type: 'number', unit: 'watts' },
+      ],
+    },
+  ];
+
+  return (
+    <div className="p-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setActiveScreen('home')} className="p-2 hover:bg-gray-100 rounded-lg">
+            <ChevronLeft size={20} />
+          </button>
+          <h2 className="text-xl font-bold text-gray-900">Profile Settings</h2>
+        </div>
+        {!editing ? (
+          <button onClick={() => setEditing(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
+            <Edit3 size={14} /> Edit
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button onClick={() => { setEditing(false); setForm({ age: onboarding.age || '', weight: onboarding.weight || '', height: onboarding.height || '', trainingBackground: onboarding.trainingBackground || 'beginner', goalType: onboarding.goalType || 'finish', raceDate: onboarding.raceDate || '', priority: onboarding.priority || 'balanced', hoursPerWeek: onboarding.hoursPerWeek || '', poolDaysPerWeek: onboarding.poolDaysPerWeek || '', gymAccess: onboarding.gymAccess ?? true, canSwim1900m: onboarding.canSwim1900m ?? false, fiveKTime: onboarding.fiveKTime || '', ftp: onboarding.ftp || '' }); }}
+              className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
+              {saving ? <Loader className="animate-spin" size={14} /> : <Save size={14} />}
+              Save
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* User Info Card */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl p-5">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-xl font-bold">
+            {(user.user_metadata?.full_name || user.email || '?').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+          </div>
+          <div>
+            <h3 className="font-bold text-lg">{user.user_metadata?.full_name || 'Athlete'}</h3>
+            <p className="text-sm opacity-80">{user.email}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Field Groups */}
+      {fieldGroups.map((group) => (
+        <div key={group.title} className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 border-b">
+            <h3 className="font-bold text-sm text-gray-700">{group.title}</h3>
+          </div>
+          <div className="divide-y">
+            {group.fields.map((field: any) => (
+              <div key={field.key} className="px-4 py-3 flex items-center justify-between">
+                <label className="text-sm text-gray-600 font-medium">{field.label}</label>
+                {!editing ? (
+                  <span className="text-sm font-semibold text-gray-900">
+                    {field.type === 'toggle' ? (
+                      (form as any)[field.key] ? <span className="text-green-600">Yes</span> : <span className="text-gray-400">No</span>
+                    ) : field.type === 'select' ? (
+                      field.options?.find((o: any) => o.value === (form as any)[field.key])?.label || (form as any)[field.key] || '—'
+                    ) : field.key === 'fiveKTime' && (form as any)[field.key] ? (
+                      `${Math.floor((form as any)[field.key] / 60)}:${String((form as any)[field.key] % 60).padStart(2, '0')}`
+                    ) : (
+                      (form as any)[field.key] ? `${(form as any)[field.key]}${field.unit ? ' ' + field.unit : ''}` : '—'
+                    )}
+                  </span>
+                ) : (
+                  <div className="w-40">
+                    {field.type === 'toggle' ? (
+                      <button onClick={() => setForm({ ...form, [field.key]: !(form as any)[field.key] })}
+                        className={`w-12 h-6 rounded-full relative transition-colors ${(form as any)[field.key] ? 'bg-green-500' : 'bg-gray-300'}`}>
+                        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${(form as any)[field.key] ? 'left-6' : 'left-0.5'}`} />
+                      </button>
+                    ) : field.type === 'select' ? (
+                      <select value={(form as any)[field.key]} onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+                        className="w-full p-2 border rounded-lg text-sm text-right">
+                        {field.options?.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <input type={field.type === 'date' ? 'date' : 'number'}
+                          step={field.step || '1'}
+                          value={(form as any)[field.key] || ''}
+                          onChange={(e) => setForm({ ...form, [field.key]: field.type === 'number' ? (e.target.value ? +e.target.value : '') : e.target.value })}
+                          className="w-full p-2 border rounded-lg text-sm text-right" />
+                        {field.unit && <span className="text-xs text-gray-400 whitespace-nowrap">{field.unit}</span>}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* PIN Section for Manolis */}
+      {user.email === MANOLIS_EMAIL && (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 border-b">
+            <h3 className="font-bold text-sm text-gray-700">Security</h3>
+          </div>
+          <div className="px-4 py-3 flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-600">Login PIN</div>
+              <div className="text-xs text-gray-400">Change your 6-digit PIN</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Lock size={16} className="text-gray-400" />
+              <span className="text-sm font-semibold text-gray-500">••••••</span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
