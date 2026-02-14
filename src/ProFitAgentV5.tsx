@@ -865,7 +865,7 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate, userPrefs, 
               <Settings size={18} className="text-gray-500" /><span>Profile Settings</span>
             </button>
             <button onClick={() => { setShowWhatsApp(true); setShowMenu(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm">
-              <MessageCircle size={18} className="text-green-500" /><span>Connect WhatsApp</span>
+              <MessageCircle size={18} className="text-blue-500" /><span>Connect Telegram</span>
             </button>
             <div className="border-t my-1"></div>
             <button onClick={onLogout} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm text-red-600">
@@ -875,7 +875,7 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate, userPrefs, 
         </div>
       )}
 
-      {/* WhatsApp Connect Modal */}
+      {/* Telegram Connect Modal */}
       {showWhatsApp && <WhatsAppConnectModal user={user} onClose={() => setShowWhatsApp(false)} />}
     </>
   );
@@ -905,47 +905,58 @@ const WhatsAppConnectModal = ({ user, onClose }: { user: AppUser; onClose: () =>
     setLoading(false);
   };
 
-  const copyCode = () => {
-    if (code) { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+  const copyCommand = () => {
+    if (code) { navigator.clipboard.writeText(`/start ${code}`); setCopied(true); setTimeout(() => setCopied(false), 2000); }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={(e: any) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold flex items-center gap-2"><MessageCircle size={22} className="text-green-500" /> Connect WhatsApp</h2>
+          <h2 className="text-lg font-bold flex items-center gap-2"><MessageCircle size={22} className="text-blue-500" /> Connect Telegram</h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X size={20} /></button>
         </div>
 
         {!code ? (
           <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Smartphone size={28} className="text-green-600" />
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Smartphone size={28} className="text-blue-600" />
             </div>
-            <p className="text-sm text-gray-600 mb-4">Connect your WhatsApp to log workouts, check your status, and get reminders via message.</p>
+            <p className="text-sm text-gray-600 mb-4">Connect your Telegram to log sleep, fatigue, weight and check your training plan via messages.</p>
             <button onClick={generateCode} disabled={loading}
-              className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2">
+              className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
               {loading ? <Loader className="animate-spin" size={18} /> : <MessageCircle size={18} />}
               {loading ? 'Generating...' : 'Generate Pairing Code'}
             </button>
           </div>
         ) : (
           <div className="text-center">
-            <p className="text-sm text-gray-500 mb-3">Send this code to the Pro Fit Agent WhatsApp bot:</p>
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="text-4xl font-mono font-bold tracking-widest text-gray-900">{code}</div>
-              <button onClick={copyCode} className="p-2 hover:bg-gray-100 rounded-lg">
-                {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} className="text-gray-400" />}
+            <div className="bg-blue-50 rounded-xl p-4 mb-4">
+              <p className="text-xs text-blue-600 font-semibold mb-2">Step 1: Open Telegram and search for</p>
+              <a href="https://t.me/ProFitAgent_bot" target="_blank" rel="noopener" className="text-blue-700 font-bold text-lg hover:underline">@ProFitAgent_bot</a>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-4 mb-4">
+              <p className="text-xs text-gray-500 font-semibold mb-2">Step 2: Send this exact message to the bot</p>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <code className="text-2xl font-mono font-bold tracking-wide text-gray-900 bg-white px-4 py-2 rounded-lg border">/start {code}</code>
+              </div>
+              <button onClick={copyCommand} className="mt-2 flex items-center gap-1 mx-auto text-sm text-blue-600 hover:underline">
+                {copied ? <><Check size={14} className="text-green-500" /> Copied!</> : <><Copy size={14} /> Copy command</>}
               </button>
             </div>
+
             <p className="text-xs text-gray-400 mb-4">
-              Expires in 10 minutes{expiresAt ? ` (${new Date(expiresAt).toLocaleTimeString()})` : ''}
+              Code expires in 10 minutes{expiresAt ? ` (${new Date(expiresAt).toLocaleTimeString()})` : ''}
             </p>
+
             <div className="bg-gray-50 rounded-xl p-3 text-left text-xs text-gray-600 space-y-1">
               <p className="font-semibold mb-1">After pairing, you can send:</p>
-              <p><code className="bg-gray-200 px-1 rounded">log run 45min 7km rpe6</code></p>
-              <p><code className="bg-gray-200 px-1 rounded">fatigue 7 sleep 6.5 weight 78</code></p>
-              <p><code className="bg-gray-200 px-1 rounded">summary</code></p>
+              <p><code className="bg-gray-200 px-1 rounded">/sleep 7.5</code> — Log sleep hours</p>
+              <p><code className="bg-gray-200 px-1 rounded">/fatigue 6</code> — Log tiredness (1-10)</p>
+              <p><code className="bg-gray-200 px-1 rounded">/weight 67.2</code> — Log body weight</p>
+              <p><code className="bg-gray-200 px-1 rounded">/today</code> — Today's training plan</p>
+              <p><code className="bg-gray-200 px-1 rounded">/summary</code> — Weekly stats</p>
             </div>
             <button onClick={generateCode} className="text-sm text-blue-600 hover:underline mt-3">Generate new code</button>
           </div>
