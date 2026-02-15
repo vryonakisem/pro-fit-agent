@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, TrendingUp, Brain, Target, Plus, ChevronLeft, ChevronRight,
   X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw, UtensilsCrossed, Lock, Edit3, Save,
-  Smartphone, Copy, Flag, Award, MessageCircle, Palette, ChevronDown
+  Smartphone, Copy, Flag, Award, MessageCircle, Palette, ChevronDown, Dumbbell
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
@@ -512,6 +512,7 @@ const ProFitAgentV5 = () => {
           {activeScreen === 'plan' && <PlanScreen plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} onboarding={onboardingData} milestones={milestones} />}
           {activeScreen === 'coach' && <CoachScreen onboarding={onboardingData} plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} trainingSessions={trainingSessions} bodyMetrics={bodyMetrics} />}
           {activeScreen === 'nutrition' && <NutritionScreen onboarding={onboardingData} plan={plan} trainingSessions={trainingSessions} />}
+          {activeScreen === 'gym' && <GymScreen supabase={supabase} user={user} />}
           {activeScreen === 'account' && <AccountScreen user={user} onboarding={onboardingData} setOnboarding={setOnboardingData} setActiveScreen={setActiveScreen} />}
         </div>
         <BottomNav activeTab={activeScreen} setActiveTab={setActiveScreen} />
@@ -2539,21 +2540,799 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
 // BOTTOM NAV — 6 tabs
 // ============================================================================
 
+
+// ============================================================================
+// GYM SCREEN — Push/Pull/Legs Strength Tracker
+// ============================================================================
+
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface GymExercise {
+  id: string;
+  name: string;
+  day_type: 'Push' | 'Pull' | 'Legs';
+  primary_muscle: string;
+  secondary_muscles: string[];
+  equipment: string[];
+  sort_order: number;
+}
+
+interface GymSet {
+  id?: string;
+  entry_id?: string;
+  set_index: number;
+  weight: number;
+  reps: number;
+  rpe?: number;
+  is_warmup: boolean;
+  notes?: string;
+}
+
+interface GymExerciseEntry {
+  id?: string;
+  session_id?: string;
+  exercise_id: string;
+  exercise?: GymExercise;
+  order_index: number;
+  notes?: string;
+  sets: GymSet[];
+  lastSession?: { date: string; sets: GymSet[] };
+}
+
+interface GymSession {
+  id?: string;
+  user_id?: string;
+  date: string;
+  day_type: 'Push' | 'Pull' | 'Legs';
+  notes?: string;
+  duration_minutes?: number;
+  started_at?: string;
+  completed_at?: string;
+  entries?: GymExerciseEntry[];
+}
+
+interface GymTemplate {
+  id: string;
+  name: string;
+  day_type: 'Push' | 'Pull' | 'Legs';
+  exercises: { exercise_id: string; order_index: number }[];
+}
+
+// ============================================================================
+// SVG MUSCLE ICONS
+// ============================================================================
+
+const MuscleIcon = ({ muscle, size = 24 }: { muscle: string; size?: number }) => {
+  const iconMap: Record<string, { emoji: string; color: string }> = {
+    'Chest': { emoji: '🫁', color: '#ef4444' },
+    'Upper Chest': { emoji: '🫁', color: '#f97316' },
+    'Shoulders': { emoji: '🔵', color: '#3b82f6' },
+    'Side Delts': { emoji: '🔵', color: '#6366f1' },
+    'Front Delts': { emoji: '🔵', color: '#8b5cf6' },
+    'Rear Delts': { emoji: '🔵', color: '#a855f7' },
+    'Triceps': { emoji: '💪', color: '#ec4899' },
+    'Back': { emoji: '🔙', color: '#14b8a6' },
+    'Lats': { emoji: '🦅', color: '#0d9488' },
+    'Biceps': { emoji: '💪', color: '#f59e0b' },
+    'Traps': { emoji: '⬆️', color: '#84cc16' },
+    'Forearms': { emoji: '🤝', color: '#a3a3a3' },
+    'Quads': { emoji: '🦵', color: '#ef4444' },
+    'Hamstrings': { emoji: '🦵', color: '#f97316' },
+    'Glutes': { emoji: '🍑', color: '#ec4899' },
+    'Calves': { emoji: '🦶', color: '#6366f1' },
+    'Lower Back': { emoji: '🔙', color: '#14b8a6' },
+  };
+  const icon = iconMap[muscle] || { emoji: '🏋️', color: '#6b7280' };
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40">
+      <circle cx="20" cy="20" r="18" fill={icon.color} opacity="0.15" />
+      <circle cx="20" cy="20" r="18" fill="none" stroke={icon.color} strokeWidth="2" opacity="0.4" />
+      <text x="20" y="26" textAnchor="middle" fontSize="16">{icon.emoji}</text>
+    </svg>
+  );
+};
+
+// Equipment badge
+const EquipmentBadge = ({ equipment }: { equipment: string | string[] }) => {
+  const colors: Record<string, string> = {
+    'Barbell': 'bg-red-100 text-red-700',
+    'Dumbbells': 'bg-blue-100 text-blue-700',
+    'Dumbbell': 'bg-blue-100 text-blue-700',
+    'Cable Machine': 'bg-purple-100 text-purple-700',
+    'Cable': 'bg-purple-100 text-purple-700',
+    'Machine': 'bg-green-100 text-green-700',
+    'Smith Machine': 'bg-green-100 text-green-700',
+    'Leg Press Machine': 'bg-green-100 text-green-700',
+    'Bodyweight': 'bg-gray-100 text-gray-700',
+    'Bench': 'bg-amber-100 text-amber-700',
+    'Rack': 'bg-orange-100 text-orange-700',
+    'Pull-Up Bar': 'bg-indigo-100 text-indigo-700',
+  };
+  const items = Array.isArray(equipment) ? equipment : [equipment];
+  const primary = items[0] || '';
+  return (
+    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colors[primary] || 'bg-gray-100 text-gray-600'}`}>
+      {primary}
+    </span>
+  );
+};
+
+// ============================================================================
+// MAIN GYM SCREEN
+// ============================================================================
+
+const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
+  const [view, setView] = useState<'home' | 'workout' | 'history' | 'session-detail'>('home');
+  const [exercises, setExercises] = useState<GymExercise[]>([]);
+  const [activeSession, setActiveSession] = useState<GymSession | null>(null);
+  const [sessionEntries, setSessionEntries] = useState<GymExerciseEntry[]>([]);
+  const [pastSessions, setPastSessions] = useState<GymSession[]>([]);
+  const [templates, setTemplates] = useState<GymTemplate[]>([]);
+  const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
+  const [viewingSession, setViewingSession] = useState<GymSession | null>(null);
+  const [viewingEntries, setViewingEntries] = useState<GymExerciseEntry[]>([]);
+  const [sessionTimer, setSessionTimer] = useState(0);
+  const [timerInterval, setTimerIntervalState] = useState<any>(null);
+
+  // Load exercises on mount
+  useEffect(() => {
+    loadExercises();
+    loadPastSessions();
+    loadTemplates();
+  }, []);
+
+  // Session timer
+  useEffect(() => {
+    if (activeSession && !timerInterval) {
+      const start = new Date(activeSession.started_at || Date.now()).getTime();
+      const interval = setInterval(() => {
+        setSessionTimer(Math.floor((Date.now() - start) / 1000));
+      }, 1000);
+      setTimerIntervalState(interval);
+    }
+    return () => { if (timerInterval) clearInterval(timerInterval); };
+  }, [activeSession]);
+
+  const loadExercises = async () => {
+    const { data } = await supabase.from('gym_exercises').select('*').order('sort_order');
+    if (data) setExercises(data);
+  };
+
+  const loadPastSessions = async () => {
+    const { data } = await supabase.from('gym_sessions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false })
+      .limit(50);
+    if (data) setPastSessions(data);
+  };
+
+  const loadTemplates = async () => {
+    const { data } = await supabase.from('gym_templates')
+      .select('*, gym_template_exercises(*)')
+      .eq('user_id', user.id);
+    if (data) setTemplates(data.map((t: any) => ({
+      ...t,
+      exercises: (t.gym_template_exercises || []).sort((a: any, b: any) => a.order_index - b.order_index),
+    })));
+  };
+
+  // ========== START WORKOUT ==========
+  const startWorkout = async (dayType: 'Push' | 'Pull' | 'Legs', template?: GymTemplate) => {
+    const { data: session } = await supabase.from('gym_sessions').insert({
+      user_id: user.id,
+      date: new Date().toISOString().split('T')[0],
+      day_type: dayType,
+      started_at: new Date().toISOString(),
+    }).select().single();
+
+    if (!session) return;
+    setActiveSession(session);
+    setSessionTimer(0);
+
+    // If template, pre-populate exercises
+    if (template) {
+      const entries: GymExerciseEntry[] = [];
+      for (const te of template.exercises) {
+        const exercise = exercises.find(e => e.id === te.exercise_id);
+        if (!exercise) continue;
+
+        const { data: entry } = await supabase.from('gym_exercise_entries').insert({
+          session_id: session.id,
+          exercise_id: te.exercise_id,
+          order_index: te.order_index,
+        }).select().single();
+
+        if (entry) {
+          const lastSession = await getLastSession(te.exercise_id);
+          entries.push({ ...entry, exercise, sets: [], lastSession });
+        }
+      }
+      setSessionEntries(entries);
+    } else {
+      setSessionEntries([]);
+    }
+
+    setView('workout');
+  };
+
+  // ========== GET LAST SESSION FOR EXERCISE ==========
+  const getLastSession = async (exerciseId: string): Promise<{ date: string; sets: GymSet[] } | undefined> => {
+    // Find the most recent entry for this exercise (not in current session)
+    const { data: entries } = await supabase.from('gym_exercise_entries')
+      .select('id, session_id, gym_sessions!inner(date, user_id, id)')
+      .eq('exercise_id', exerciseId)
+      .eq('gym_sessions.user_id', user.id)
+      .order('gym_sessions(date)', { ascending: false })
+      .limit(5);
+
+    if (!entries || entries.length === 0) return undefined;
+
+    // Find first entry not from current session
+    const pastEntry = entries.find((e: any) =>
+      !activeSession || e.session_id !== activeSession.id
+    );
+    if (!pastEntry) return undefined;
+
+    const { data: sets } = await supabase.from('gym_sets')
+      .select('*')
+      .eq('entry_id', pastEntry.id)
+      .order('set_index');
+
+    return {
+      date: (pastEntry as any).gym_sessions?.date || '',
+      sets: sets || [],
+    };
+  };
+
+  // ========== ADD EXERCISE TO SESSION ==========
+  const addExercise = async (exercise: GymExercise) => {
+    if (!activeSession) return;
+
+    const { data: entry } = await supabase.from('gym_exercise_entries').insert({
+      session_id: activeSession.id,
+      exercise_id: exercise.id,
+      order_index: sessionEntries.length,
+    }).select().single();
+
+    if (entry) {
+      const lastSession = await getLastSession(exercise.id);
+      setSessionEntries(prev => [...prev, { ...entry, exercise, sets: [], lastSession }]);
+    }
+    setShowExercisePicker(false);
+  };
+
+  // ========== ADD SET ==========
+  const addSet = async (entryIndex: number) => {
+    const entry = sessionEntries[entryIndex];
+    if (!entry.id) return;
+
+    // Pre-fill from last session or previous set
+    let defaultWeight = 0;
+    let defaultReps = 0;
+    if (entry.sets.length > 0) {
+      const lastSet = entry.sets[entry.sets.length - 1];
+      defaultWeight = lastSet.weight;
+      defaultReps = lastSet.reps;
+    } else if (entry.lastSession && entry.lastSession.sets.length > 0) {
+      const lastTopSet = entry.lastSession.sets.reduce((max, s) => s.weight > max.weight ? s : max, entry.lastSession.sets[0]);
+      defaultWeight = lastTopSet.weight;
+      defaultReps = lastTopSet.reps;
+    }
+
+    const newSet: GymSet = {
+      set_index: entry.sets.length,
+      weight: defaultWeight,
+      reps: defaultReps,
+      is_warmup: false,
+    };
+
+    const { data: inserted } = await supabase.from('gym_sets').insert({
+      entry_id: entry.id,
+      ...newSet,
+    }).select().single();
+
+    if (inserted) {
+      setSessionEntries(prev => prev.map((e, i) =>
+        i === entryIndex ? { ...e, sets: [...e.sets, inserted] } : e
+      ));
+    }
+  };
+
+  // ========== UPDATE SET ==========
+  const updateSet = async (entryIndex: number, setIndex: number, field: string, value: any) => {
+    const entry = sessionEntries[entryIndex];
+    const set = entry.sets[setIndex];
+    if (!set.id) return;
+
+    await supabase.from('gym_sets').update({ [field]: value }).eq('id', set.id);
+
+    setSessionEntries(prev => prev.map((e, i) =>
+      i === entryIndex ? {
+        ...e,
+        sets: e.sets.map((s, j) => j === setIndex ? { ...s, [field]: value } : s)
+      } : e
+    ));
+  };
+
+  // ========== DELETE SET ==========
+  const deleteSet = async (entryIndex: number, setIndex: number) => {
+    const set = sessionEntries[entryIndex].sets[setIndex];
+    if (!set.id) return;
+    await supabase.from('gym_sets').delete().eq('id', set.id);
+    setSessionEntries(prev => prev.map((e, i) =>
+      i === entryIndex ? { ...e, sets: e.sets.filter((_, j) => j !== setIndex) } : e
+    ));
+  };
+
+  // ========== FINISH WORKOUT ==========
+  const finishWorkout = async () => {
+    if (!activeSession) return;
+    const duration = Math.round(sessionTimer / 60);
+    await supabase.from('gym_sessions').update({
+      completed_at: new Date().toISOString(),
+      duration_minutes: duration,
+    }).eq('id', activeSession.id);
+
+    if (timerInterval) clearInterval(timerInterval);
+    setTimerIntervalState(null);
+    setActiveSession(null);
+    setSessionEntries([]);
+    setView('home');
+    loadPastSessions();
+  };
+
+  // ========== SAVE AS TEMPLATE ==========
+  const saveAsTemplate = async () => {
+    if (!activeSession || sessionEntries.length === 0) return;
+    const name = prompt(`Template name (e.g. "${activeSession.day_type} A"):`);
+    if (!name) return;
+
+    const { data: template } = await supabase.from('gym_templates').insert({
+      user_id: user.id,
+      name,
+      day_type: activeSession.day_type,
+    }).select().single();
+
+    if (template) {
+      for (const entry of sessionEntries) {
+        await supabase.from('gym_template_exercises').insert({
+          template_id: template.id,
+          exercise_id: entry.exercise_id,
+          order_index: entry.order_index,
+        });
+      }
+      loadTemplates();
+    }
+  };
+
+  // ========== VIEW PAST SESSION ==========
+  const viewSession = async (session: GymSession) => {
+    const { data: entries } = await supabase.from('gym_exercise_entries')
+      .select('*, gym_exercises(*)')
+      .eq('session_id', session.id)
+      .order('order_index');
+
+    if (entries) {
+      const entriesWithSets: GymExerciseEntry[] = [];
+      for (const entry of entries) {
+        const { data: sets } = await supabase.from('gym_sets')
+          .select('*')
+          .eq('entry_id', entry.id)
+          .order('set_index');
+        entriesWithSets.push({
+          ...entry,
+          exercise: entry.gym_exercises,
+          sets: sets || [],
+        });
+      }
+      setViewingSession(session);
+      setViewingEntries(entriesWithSets);
+      setView('session-detail');
+    }
+  };
+
+  // Format timer
+  const formatTimer = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+  };
+
+  const dayTypeColors = {
+    Push: { bg: 'bg-red-500', light: 'bg-red-50', text: 'text-red-700', ring: 'ring-red-200' },
+    Pull: { bg: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-700', ring: 'ring-blue-200' },
+    Legs: { bg: 'bg-green-500', light: 'bg-green-50', text: 'text-green-700', ring: 'ring-green-200' },
+  };
+
+  // ========================================================================
+  // HOME VIEW
+  // ========================================================================
+  if (view === 'home') {
+    const dayTypes: ('Push' | 'Pull' | 'Legs')[] = ['Push', 'Pull', 'Legs'];
+    const recentByType = dayTypes.map(dt => ({
+      type: dt,
+      last: pastSessions.find(s => s.day_type === dt),
+    }));
+
+    return (
+      <div className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">Gym</h2>
+          <button onClick={() => setView('history')} className="text-sm text-blue-600 font-semibold">History →</button>
+        </div>
+
+        {/* Start Workout */}
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Start Workout</p>
+          {dayTypes.map(dt => {
+            const c = dayTypeColors[dt];
+            const last = recentByType.find(r => r.type === dt)?.last;
+            const dayTemplates = templates.filter(t => t.day_type === dt);
+            return (
+              <div key={dt} className={`bg-white rounded-xl shadow-sm overflow-hidden ring-1 ${c.ring}`}>
+                <button onClick={() => startWorkout(dt)}
+                  className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                  <div className={`w-14 h-14 ${c.bg} rounded-xl flex items-center justify-center`}>
+                    <span className="text-white text-2xl font-black">{dt[0]}</span>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="font-bold text-gray-900">{dt} Day</div>
+                    <div className="text-xs text-gray-500">
+                      {last ? `Last: ${formatDate(last.date)}${last.duration_minutes ? ` • ${last.duration_minutes}min` : ''}` : 'No sessions yet'}
+                    </div>
+                  </div>
+                  <div className="text-gray-300 text-xl">→</div>
+                </button>
+                {dayTemplates.length > 0 && (
+                  <div className="border-t px-4 py-2 flex gap-2 overflow-x-auto">
+                    {dayTemplates.map(t => (
+                      <button key={t.id} onClick={() => startWorkout(dt, t)}
+                        className={`${c.light} ${c.text} text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap hover:opacity-80`}>
+                        📋 {t.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Recent Sessions */}
+        {pastSessions.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Recent Sessions</p>
+            {pastSessions.slice(0, 5).map(s => {
+              const c = dayTypeColors[s.day_type as keyof typeof dayTypeColors];
+              return (
+                <button key={s.id} onClick={() => viewSession(s)}
+                  className="w-full flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm mb-2 hover:bg-gray-50">
+                  <div className={`w-10 h-10 ${c.bg} rounded-lg flex items-center justify-center`}>
+                    <span className="text-white font-bold text-sm">{s.day_type[0]}</span>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="font-semibold text-sm">{s.day_type} Day</div>
+                    <div className="text-xs text-gray-500">{formatDate(s.date)}</div>
+                  </div>
+                  {s.duration_minutes && <div className="text-xs text-gray-400">{s.duration_minutes}min</div>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ========================================================================
+  // ACTIVE WORKOUT VIEW
+  // ========================================================================
+  if (view === 'workout' && activeSession) {
+    const c = dayTypeColors[activeSession.day_type as keyof typeof dayTypeColors];
+    const filteredExercises = exercises.filter(e => e.day_type === activeSession.day_type);
+    const usedIds = sessionEntries.map(e => e.exercise_id);
+    const availableExercises = filteredExercises.filter(e => !usedIds.includes(e.id));
+
+    return (
+      <div className="p-4 space-y-3 pb-24">
+        {/* Header */}
+        <div className={`${c.bg} text-white rounded-xl p-4`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-bold text-lg">{activeSession.day_type} Day</div>
+              <div className="text-sm opacity-80">{formatDate(activeSession.date)}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-mono font-bold">{formatTimer(sessionTimer)}</div>
+              <div className="text-xs opacity-70">{sessionEntries.length} exercises</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Exercise Entries */}
+        {sessionEntries.map((entry, entryIndex) => (
+          <div key={entry.id || entryIndex} className="bg-white rounded-xl shadow-sm overflow-hidden">
+            {/* Exercise header */}
+            <button onClick={() => setExpandedEntry(expandedEntry === entry.id ? null : entry.id || null)}
+              className="w-full p-3 flex items-center gap-3 hover:bg-gray-50">
+              <MuscleIcon muscle={entry.exercise?.primary_muscle || ''} size={36} />
+              <div className="flex-1 text-left">
+                <div className="font-bold text-sm">{entry.exercise?.name}</div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <EquipmentBadge equipment={entry.exercise?.equipment || ''} />
+                  <span className="text-[10px] text-gray-400">{entry.sets.length} sets</span>
+                  {entry.sets.length > 0 && (
+                    <span className="text-[10px] text-gray-500 font-semibold">
+                      Top: {Math.max(...entry.sets.map(s => s.weight))}kg × {entry.sets.find(s => s.weight === Math.max(...entry.sets.map(s => s.weight)))?.reps}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className="text-gray-300">{expandedEntry === entry.id ? '▲' : '▼'}</span>
+            </button>
+
+            {/* Expanded: Last time + sets */}
+            {expandedEntry === entry.id && (
+              <div className="border-t">
+                {/* Last time you did this */}
+                {entry.lastSession && (
+                  <div className="bg-amber-50 px-3 py-2 border-b border-amber-100">
+                    <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wide mb-1">
+                      📊 Last time — {formatDate(entry.lastSession.date)}
+                    </div>
+                    <div className="flex gap-3 flex-wrap">
+                      {entry.lastSession.sets.map((s, i) => (
+                        <div key={i} className="text-xs text-amber-800">
+                          <span className="font-semibold">{s.weight}kg</span> × {s.reps}
+                          {s.rpe ? <span className="text-amber-500 ml-1">@{s.rpe}</span> : ''}
+                        </div>
+                      ))}
+                    </div>
+                    {entry.lastSession.sets.length > 0 && (
+                      <div className="text-[10px] text-amber-600 mt-1">
+                        Top set: {Math.max(...entry.lastSession.sets.map(s => s.weight))}kg ×{' '}
+                        {entry.lastSession.sets.find(s => s.weight === Math.max(...entry.lastSession.sets.map(s => s.weight)))?.reps}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Sets table */}
+                <div className="px-3 py-2">
+                  {entry.sets.length > 0 && (
+                    <div className="grid grid-cols-12 gap-1 text-[10px] text-gray-400 font-bold uppercase mb-1 px-1">
+                      <div className="col-span-1">#</div>
+                      <div className="col-span-4">Weight (kg)</div>
+                      <div className="col-span-3">Reps</div>
+                      <div className="col-span-2">RPE</div>
+                      <div className="col-span-2"></div>
+                    </div>
+                  )}
+                  {entry.sets.map((set, setIndex) => (
+                    <div key={set.id || setIndex} className="grid grid-cols-12 gap-1 items-center mb-1">
+                      <div className="col-span-1 text-xs text-gray-400 font-bold">{setIndex + 1}</div>
+                      <div className="col-span-4">
+                        <input type="number" value={set.weight || ''} step="0.5"
+                          onChange={(e) => updateSet(entryIndex, setIndex, 'weight', parseFloat(e.target.value) || 0)}
+                          className="w-full p-1.5 border rounded text-sm text-center font-semibold" />
+                      </div>
+                      <div className="col-span-3">
+                        <input type="number" value={set.reps || ''}
+                          onChange={(e) => updateSet(entryIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
+                          className="w-full p-1.5 border rounded text-sm text-center font-semibold" />
+                      </div>
+                      <div className="col-span-2">
+                        <input type="number" value={set.rpe || ''} step="0.5" min="1" max="10"
+                          onChange={(e) => updateSet(entryIndex, setIndex, 'rpe', parseFloat(e.target.value) || null)}
+                          className="w-full p-1.5 border rounded text-sm text-center text-gray-500" placeholder="—" />
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <button onClick={() => deleteSet(entryIndex, setIndex)}
+                          className="text-red-300 hover:text-red-500 text-xs px-1">✕</button>
+                      </div>
+                    </div>
+                  ))}
+                  <button onClick={() => addSet(entryIndex)}
+                    className="w-full mt-1 py-2 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 font-semibold hover:border-blue-300 hover:text-blue-500">
+                    + Add Set
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Add Exercise Button */}
+        <button onClick={() => setShowExercisePicker(true)}
+          className={`w-full py-3 ${c.light} ${c.text} rounded-xl font-bold text-sm hover:opacity-80`}>
+          + Add Exercise
+        </button>
+
+        {/* Bottom Actions */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-3 flex gap-2" style={{ maxWidth: 480, margin: '0 auto' }}>
+          <button onClick={saveAsTemplate}
+            className="flex-1 py-3 border rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">
+            💾 Save Template
+          </button>
+          <button onClick={finishWorkout}
+            className={`flex-1 py-3 ${c.bg} text-white rounded-xl text-sm font-bold hover:opacity-90`}>
+            ✅ Finish Workout
+          </button>
+        </div>
+
+        {/* Exercise Picker Modal */}
+        {showExercisePicker && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end" onClick={() => setShowExercisePicker(false)}>
+            <div className="bg-white rounded-t-2xl w-full max-h-[70vh] overflow-y-auto" onClick={(e: any) => e.stopPropagation()}>
+              <div className="sticky top-0 bg-white p-4 border-b">
+                <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
+                <h3 className="font-bold text-lg">Add {activeSession.day_type} Exercise</h3>
+                <p className="text-xs text-gray-500">{availableExercises.length} exercises available</p>
+              </div>
+              <div className="p-2">
+                {availableExercises.map(ex => (
+                  <button key={ex.id} onClick={() => addExercise(ex)}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg">
+                    <MuscleIcon muscle={ex.primary_muscle} size={40} />
+                    <div className="flex-1 text-left">
+                      <div className="font-semibold text-sm">{ex.name}</div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-gray-500">{ex.primary_muscle}</span>
+                        <EquipmentBadge equipment={ex.equipment} />
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ========================================================================
+  // HISTORY VIEW
+  // ========================================================================
+  if (view === 'history') {
+    // Group by month
+    const grouped: Record<string, GymSession[]> = {};
+    pastSessions.forEach(s => {
+      const key = s.date.substring(0, 7); // YYYY-MM
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(s);
+    });
+
+    return (
+      <div className="p-4 space-y-4">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setView('home')} className="p-2 hover:bg-gray-100 rounded-lg">←</button>
+          <h2 className="text-xl font-bold text-gray-900">Workout History</h2>
+        </div>
+
+        {Object.keys(grouped).length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            <div className="text-4xl mb-3">🏋️</div>
+            <div className="font-semibold">No workouts yet</div>
+            <div className="text-sm">Start your first session!</div>
+          </div>
+        ) : (
+          Object.entries(grouped).map(([month, sessions]) => {
+            const d = new Date(month + '-01');
+            const monthName = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+            return (
+              <div key={month}>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{monthName}</p>
+                {sessions.map(s => {
+                  const c = dayTypeColors[s.day_type as keyof typeof dayTypeColors];
+                  return (
+                    <button key={s.id} onClick={() => viewSession(s)}
+                      className="w-full flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm mb-2 hover:bg-gray-50">
+                      <div className={`w-10 h-10 ${c.bg} rounded-lg flex items-center justify-center`}>
+                        <span className="text-white font-bold text-sm">{s.day_type[0]}</span>
+                      </div>
+                      <div className="flex-1 text-left">
+                        <div className="font-semibold text-sm">{s.day_type} Day</div>
+                        <div className="text-xs text-gray-500">{formatDate(s.date)}</div>
+                      </div>
+                      {s.duration_minutes && <div className="text-xs text-gray-400">{s.duration_minutes}min</div>}
+                      <span className="text-gray-300">→</span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })
+        )}
+      </div>
+    );
+  }
+
+  // ========================================================================
+  // SESSION DETAIL VIEW
+  // ========================================================================
+  if (view === 'session-detail' && viewingSession) {
+    const c = dayTypeColors[viewingSession.day_type as keyof typeof dayTypeColors];
+    const totalSets = viewingEntries.reduce((sum, e) => sum + e.sets.length, 0);
+    const totalVolume = viewingEntries.reduce((sum, e) =>
+      sum + e.sets.reduce((s, set) => s + set.weight * set.reps, 0), 0
+    );
+
+    return (
+      <div className="p-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setView('history')} className="p-2 hover:bg-gray-100 rounded-lg">←</button>
+          <h2 className="text-xl font-bold text-gray-900">Session Detail</h2>
+        </div>
+
+        <div className={`${c.bg} text-white rounded-xl p-4`}>
+          <div className="font-bold text-lg">{viewingSession.day_type} Day</div>
+          <div className="text-sm opacity-80">{formatDate(viewingSession.date)}</div>
+          <div className="flex gap-4 mt-2 text-sm opacity-80">
+            {viewingSession.duration_minutes && <span>⏱ {viewingSession.duration_minutes}min</span>}
+            <span>💪 {viewingEntries.length} exercises</span>
+            <span>📊 {totalSets} sets</span>
+          </div>
+          <div className="text-xs mt-1 opacity-60">Volume: {Math.round(totalVolume).toLocaleString()}kg</div>
+        </div>
+
+        {viewingEntries.map((entry, i) => (
+          <div key={i} className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-3 flex items-center gap-3 border-b">
+              <MuscleIcon muscle={entry.exercise?.primary_muscle || ''} size={32} />
+              <div>
+                <div className="font-bold text-sm">{entry.exercise?.name}</div>
+                <EquipmentBadge equipment={entry.exercise?.equipment || ''} />
+              </div>
+            </div>
+            <div className="px-3 py-2">
+              {entry.sets.map((set, j) => (
+                <div key={j} className="flex items-center gap-4 py-1 text-sm">
+                  <span className="text-gray-400 font-bold w-6">{j + 1}</span>
+                  <span className="font-semibold">{set.weight}kg</span>
+                  <span>× {set.reps}</span>
+                  {set.rpe && <span className="text-gray-400">@{set.rpe}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return null;
+};
+
 const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string; setActiveTab: (t: string) => void }) => (
   <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-    <div className="grid grid-cols-6 gap-0.5 p-1.5">
+    <div className="grid grid-cols-7 gap-0.5 p-1.5">
       {[
         { id: 'home', icon: TrendingUp, label: 'Home' },
         { id: 'calendar', icon: Calendar, label: 'Calendar' },
         { id: 'log', icon: Plus, label: 'Log' },
         { id: 'plan', icon: Target, label: 'Plan' },
+        { id: 'gym', icon: Dumbbell, label: 'Gym' },
         { id: 'nutrition', icon: UtensilsCrossed, label: 'Food' },
         { id: 'coach', icon: Brain, label: 'Coach' },
       ].map(({ id, icon: Icon, label }) => (
         <button key={id} onClick={() => setActiveTab(id)}
-          className={`flex flex-col items-center py-1.5 px-1 rounded ${activeTab === id ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}>
+          className={`flex flex-col items-center py-1.5 px-0.5 rounded ${activeTab === id ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}>
           <Icon size={id === 'log' ? 22 : 18} />
-          <span className="text-[10px] mt-0.5">{label}</span>
+          <span className="text-[9px] mt-0.5">{label}</span>
         </button>
       ))}
     </div>
