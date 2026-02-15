@@ -2552,6 +2552,7 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
 
 interface GymExercise {
   id: string;
+  slug: string;
   name: string;
   day_type: 'Push' | 'Pull' | 'Legs';
   primary_muscle: string;
@@ -2605,34 +2606,39 @@ interface GymTemplate {
 // SVG MUSCLE ICONS
 // ============================================================================
 
-const MuscleIcon = ({ muscle, size = 24 }: { muscle: string; size?: number }) => {
-  const iconMap: Record<string, { emoji: string; color: string }> = {
-    'Chest': { emoji: '🫁', color: '#ef4444' },
-    'Upper Chest': { emoji: '🫁', color: '#f97316' },
-    'Shoulders': { emoji: '🔵', color: '#3b82f6' },
-    'Side Delts': { emoji: '🔵', color: '#6366f1' },
-    'Front Delts': { emoji: '🔵', color: '#8b5cf6' },
-    'Rear Delts': { emoji: '🔵', color: '#a855f7' },
-    'Triceps': { emoji: '💪', color: '#ec4899' },
-    'Back': { emoji: '🔙', color: '#14b8a6' },
-    'Lats': { emoji: '🦅', color: '#0d9488' },
-    'Biceps': { emoji: '💪', color: '#f59e0b' },
-    'Traps': { emoji: '⬆️', color: '#84cc16' },
-    'Forearms': { emoji: '🤝', color: '#a3a3a3' },
-    'Quads': { emoji: '🦵', color: '#ef4444' },
-    'Hamstrings': { emoji: '🦵', color: '#f97316' },
-    'Glutes': { emoji: '🍑', color: '#ec4899' },
-    'Calves': { emoji: '🦶', color: '#6366f1' },
-    'Lower Back': { emoji: '🔙', color: '#14b8a6' },
-  };
-  const icon = iconMap[muscle] || { emoji: '🏋️', color: '#6b7280' };
+const EXERCISE_IMG_BASE = 'https://tvpzjylyickdmeurthxe.supabase.co/storage/v1/object/public/exercise-images';
+
+const ExerciseImage = ({ exercise, size = 36 }: { exercise?: { slug?: string; day_type?: string; primary_muscle?: string }; size?: number }) => {
+  const [failed, setFailed] = useState(false);
+  const folder = exercise?.day_type?.toLowerCase() || '';
+  const slug = exercise?.slug || '';
+  const url = slug && folder ? `${EXERCISE_IMG_BASE}/${folder}/${slug}.jpg` : '';
+
+  if (!url || failed) {
+    // Fallback to emoji
+    const muscle = exercise?.primary_muscle || '';
+    const iconMap: Record<string, { emoji: string; color: string }> = {
+      'Chest': { emoji: '🫁', color: '#ef4444' }, 'Upper Chest': { emoji: '🫁', color: '#f97316' },
+      'Shoulders': { emoji: '🔵', color: '#3b82f6' }, 'Lateral Deltoid': { emoji: '🔵', color: '#6366f1' },
+      'Rear Deltoid': { emoji: '🔵', color: '#a855f7' }, 'Triceps': { emoji: '💪', color: '#ec4899' },
+      'Lats': { emoji: '🦅', color: '#0d9488' }, 'Middle Back': { emoji: '🔙', color: '#14b8a6' },
+      'Biceps': { emoji: '💪', color: '#f59e0b' }, 'Quadriceps': { emoji: '🦵', color: '#ef4444' },
+      'Hamstrings': { emoji: '🦵', color: '#f97316' }, 'Glutes': { emoji: '🍑', color: '#ec4899' },
+      'Calves': { emoji: '🦶', color: '#6366f1' },
+    };
+    const icon = iconMap[muscle] || { emoji: '🏋️', color: '#6b7280' };
+    return (
+      <svg width={size} height={size} viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="18" fill={icon.color} opacity="0.15" />
+        <circle cx="20" cy="20" r="18" fill="none" stroke={icon.color} strokeWidth="2" opacity="0.4" />
+        <text x="20" y="26" textAnchor="middle" fontSize="16">{icon.emoji}</text>
+      </svg>
+    );
+  }
 
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40">
-      <circle cx="20" cy="20" r="18" fill={icon.color} opacity="0.15" />
-      <circle cx="20" cy="20" r="18" fill="none" stroke={icon.color} strokeWidth="2" opacity="0.4" />
-      <text x="20" y="26" textAnchor="middle" fontSize="16">{icon.emoji}</text>
-    </svg>
+    <img src={url} alt={exercise?.slug || ''} onError={() => setFailed(true)}
+      style={{ width: size, height: size, borderRadius: size > 36 ? 10 : 8, objectFit: 'cover' }} />
   );
 };
 
@@ -3068,7 +3074,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
             {/* Exercise header */}
             <button onClick={() => setExpandedEntry(expandedEntry === entry.id ? null : entry.id || null)}
               className="w-full p-3 flex items-center gap-3 hover:bg-gray-50">
-              <MuscleIcon muscle={entry.exercise?.primary_muscle || ''} size={36} />
+              <ExerciseImage exercise={entry.exercise} size={36} />
               <div className="flex-1 text-left">
                 <div className="font-bold text-sm">{entry.exercise?.name}</div>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -3186,7 +3192,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
                 {availableExercises.map(ex => (
                   <button key={ex.id} onClick={() => addExercise(ex)}
                     className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg">
-                    <MuscleIcon muscle={ex.primary_muscle} size={40} />
+                    <ExerciseImage exercise={ex} size={40} />
                     <div className="flex-1 text-left">
                       <div className="font-semibold text-sm">{ex.name}</div>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -3292,7 +3298,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
         {viewingEntries.map((entry, i) => (
           <div key={i} className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-3 flex items-center gap-3 border-b">
-              <MuscleIcon muscle={entry.exercise?.primary_muscle || ''} size={32} />
+              <ExerciseImage exercise={entry.exercise} size={32} />
               <div>
                 <div className="font-bold text-sm">{entry.exercise?.name}</div>
                 <EquipmentBadge equipment={entry.exercise?.equipment || ''} />
