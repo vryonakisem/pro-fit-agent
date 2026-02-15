@@ -377,6 +377,7 @@ const PlanningEngine = {
 const ProFitAgentV5 = () => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({ step: 1, completed: false });
   const [plannedSessions, setPlannedSessions] = useState<PlannedSession[]>([]);
   const [trainingSessions, setTrainingSessions] = useState<TrainingSession[]>([]);
@@ -392,7 +393,7 @@ const ProFitAgentV5 = () => {
   useEffect(() => {
     checkUser();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) { setUser(session.user as any); await loadUserData(session.user.id); }
+      if (event === 'SIGNED_IN' && session?.user) { setUser(session.user as any); setDataLoading(true); await loadUserData(session.user.id); setDataLoading(false); }
       else if (event === 'SIGNED_OUT') { setUser(null); setOnboardingData({ step: 1, completed: false }); }
     });
     return () => subscription.unsubscribe();
@@ -400,7 +401,12 @@ const ProFitAgentV5 = () => {
 
   const checkUser = async () => {
     const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (authUser) { setUser(authUser as any); await loadUserData(authUser.id); }
+    if (authUser) {
+      setUser(authUser as any);
+      setDataLoading(true);
+      await loadUserData(authUser.id);
+      setDataLoading(false);
+    }
     setLoading(false);
   };
 
@@ -463,9 +469,13 @@ const ProFitAgentV5 = () => {
 
   const handleAuth = async (authUser: AppUser) => {
     setUser(authUser);
+    setDataLoading(true);
+    // Try to init profile (will fail silently for existing users due to unique constraint)
     await safeQuery(() => supabase.from('user_profiles').insert({ user_id: authUser.id }), 'initProfile');
     await safeQuery(() => supabase.from('user_preferences').insert({ user_id: authUser.id }), 'initPrefs');
     await safeQuery(() => supabase.from('billing_info').insert({ user_id: authUser.id, plan: 'free', status: 'active' }), 'initBilling');
+    await loadUserData(authUser.id);
+    setDataLoading(false);
   };
 
   const handleOnboardingComplete = async (data: OnboardingData) => {
@@ -550,10 +560,15 @@ const ProFitAgentV5 = () => {
     setPlan(null); setPlannedSessions([]); setTrainingSessions([]); setBodyMetrics([]);
   };
 
-  if (loading) {
+  if (loading || dataLoading) {
+    const userName = user?.user_metadata?.full_name?.split(' ')[0] || '';
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-        <div className="text-white text-center"><Loader className="animate-spin mx-auto mb-4" size={48} /><p className="text-xl">Loading...</p></div>
+        <div className="text-white text-center">
+          <Loader className="animate-spin mx-auto mb-4" size={48} />
+          <p className="text-xl font-bold">{userName ? `Welcome back, ${userName}!` : 'Loading...'}</p>
+          {userName && <p className="text-sm opacity-70 mt-1">Loading your training data...</p>}
+        </div>
       </div>
     );
   }
@@ -1452,26 +1467,44 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
 
   const refreshPlan = async () => {
     setRefreshing(true);
-    // Delete future planned sessions (keep completed/skipped)
-    const today = new Date().toISOString().split('T')[0];
-    await supabase.from('planned_sessions').delete()
-      .eq('user_id', user.id)
-      .eq('status', 'planned')
-      .gte('date', today);
-    // Generate new 30-day sessions with gym types
-    const sessions = PlanningEngine.generate30DaySessions(user.id);
-    // Only insert sessions for dates that don't already have completed/skipped
-    const { data: existing } = await supabase.from('planned_sessions').select('date, sport')
-      .eq('user_id', user.id).gte('date', today);
-    const existingKeys = new Set((existing || []).map((e: any) => `${e.date}-${e.sport}`));
-    const newSessions = sessions.filter((s: any) => !existingKeys.has(`${s.date}-${s.sport}`));
-    if (newSessions.length > 0) {
-      await supabase.from('planned_sessions').insert(newSessions);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // 1. Get all existing sessions
+      const { data: existing } = await supabase.from('planned_sessions').select('*')
+        .eq('user_id', user.id);
+      
+      // 2. Keep past sessions + completed/skipped future sessions
+      const toKeep = (existing || []).filter((s: any) => 
+        s.date < today || s.status === 'completed' || s.status === 'skipped'
+      );
+      const toDeleteIds = (existing || []).filter((s: any) => 
+        s.date >= today && s.status === 'planned'
+      ).map((s: any) => s.id);
+      
+      // 3. Delete only future planned (not completed/skipped)
+      if (toDeleteIds.length > 0) {
+        await supabase.from('planned_sessions').delete().in('id', toDeleteIds);
+      }
+      
+      // 4. Generate new sessions
+      const newSessions = PlanningEngine.generate30DaySessions(user.id);
+      
+      // 5. Filter out dates that already have a kept session for the same sport
+      const keptKeys = new Set(toKeep.filter((s: any) => s.date >= today).map((s: any) => `${s.date}-${s.sport}`));
+      const toInsert = newSessions.filter((s: any) => !keptKeys.has(`${s.date}-${s.sport}`));
+      
+      if (toInsert.length > 0) {
+        await supabase.from('planned_sessions').insert(toInsert);
+      }
+      
+      // 6. Reload everything
+      const { data: all } = await supabase.from('planned_sessions').select('*')
+        .eq('user_id', user.id).order('date', { ascending: true });
+      if (all) setPlannedSessions(all);
+    } catch (err) {
+      console.error('Refresh plan error:', err);
     }
-    // Reload all sessions
-    const { data: all } = await supabase.from('planned_sessions').select('*')
-      .eq('user_id', user.id).order('date', { ascending: true });
-    if (all) setPlannedSessions(all);
     setRefreshing(false);
   };
   const getWeekDates = (offset: number) => {
