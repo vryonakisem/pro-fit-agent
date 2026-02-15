@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, TrendingUp, Brain, Target, Plus, ChevronLeft, ChevronRight,
   X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw, UtensilsCrossed, Lock, Edit3, Save,
-  Smartphone, Copy, Flag, Award, MessageCircle, Palette, ChevronDown, Dumbbell
+  Smartphone, Copy, Flag, Award, MessageCircle, Palette, ChevronDown, Dumbbell, ArrowLeft, Trash2
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
@@ -172,11 +172,38 @@ function formatRaceDate(dateStr: string): string {
   return `${months[d.getMonth()]} ${day}${suffix}, ${d.getFullYear()}`;
 }
 
-// Generate Unsplash image URL for race location
+// Map of known cities to reliable Unsplash photo URLs
+const cityImageMap: Record<string, string> = {
+  'cascais': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=400&fit=crop',
+  'portugal': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=400&fit=crop',
+  'london': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&h=400&fit=crop',
+  'nice': 'https://images.unsplash.com/photo-1491166617655-0723a0999cfc?w=800&h=400&fit=crop',
+  'barcelona': 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&h=400&fit=crop',
+  'dubai': 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&h=400&fit=crop',
+  'new york': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=400&fit=crop',
+  'paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=400&fit=crop',
+  'rome': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&h=400&fit=crop',
+  'athens': 'https://images.unsplash.com/photo-1555993539-1732b0258235?w=800&h=400&fit=crop',
+  'berlin': 'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=800&h=400&fit=crop',
+  'amsterdam': 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=800&h=400&fit=crop',
+  'zurich': 'https://images.unsplash.com/photo-1515488764276-beab7607c1e6?w=800&h=400&fit=crop',
+  'hawaii': 'https://images.unsplash.com/photo-1507876466758-bc54f384809c?w=800&h=400&fit=crop',
+  'sydney': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&h=400&fit=crop',
+  'tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=400&fit=crop',
+  'lisbon': 'https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=800&h=400&fit=crop',
+  'miami': 'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&h=400&fit=crop',
+  'los angeles': 'https://images.unsplash.com/photo-1534190239940-9ba8944ea261?w=800&h=400&fit=crop',
+  'san francisco': 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&h=400&fit=crop',
+};
+
 function getRaceImageUrl(location: string): string {
   if (!location) return '';
-  const query = encodeURIComponent(location + ' landscape');
-  return `https://source.unsplash.com/800x400/?${query}`;
+  const lower = location.toLowerCase();
+  for (const [key, url] of Object.entries(cityImageMap)) {
+    if (lower.includes(key)) return url;
+  }
+  // Default scenic image for unknown locations
+  return 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800&h=400&fit=crop';
 }
 
 async function safeQuery<T>(
@@ -295,11 +322,20 @@ const PlanningEngine = {
     const startDate = new Date();
     const weekTemplate: Record<number, any[]> = {
       0: [],
-      1: [{ sport: 'Swim', type: 'Skills', duration: 45, distance: 1500, intensity: 'Easy', description: 'Technique drills + easy swimming' }],
+      1: [
+        { sport: 'Swim', type: 'Skills', duration: 45, distance: 1500, intensity: 'Easy', description: 'Technique drills + easy swimming' },
+        { sport: 'Gym - Push', type: 'Push', duration: 45, distance: 0, intensity: 'Moderate', description: 'Bench press, overhead press, lateral raises, triceps' },
+      ],
       2: [{ sport: 'Run', type: 'Z2', duration: 40, distance: 6, intensity: 'Easy', description: 'Easy aerobic run' }],
-      3: [{ sport: 'Bike', type: 'Z2', duration: 60, distance: 20, intensity: 'Easy', description: 'Steady endurance ride' }],
+      3: [
+        { sport: 'Bike', type: 'Z2', duration: 60, distance: 20, intensity: 'Easy', description: 'Steady endurance ride' },
+        { sport: 'Gym - Pull', type: 'Pull', duration: 45, distance: 0, intensity: 'Moderate', description: 'Rows, pull-ups, lat pulldown, bicep curls' },
+      ],
       4: [{ sport: 'Swim', type: 'Threshold', duration: 50, distance: 2000, intensity: 'Moderate', description: '6x200m @ threshold' }],
-      5: [{ sport: 'Run', type: 'Tempo', duration: 45, distance: 7, intensity: 'Moderate', description: 'Tempo run' }],
+      5: [
+        { sport: 'Run', type: 'Tempo', duration: 45, distance: 7, intensity: 'Moderate', description: 'Tempo run' },
+        { sport: 'Gym - Legs', type: 'Legs', duration: 45, distance: 0, intensity: 'Moderate', description: 'Squats, leg press, RDL, leg curls, calf raises' },
+      ],
       6: [{ sport: 'Bike', type: 'Long', duration: 120, distance: 40, intensity: 'Easy', description: 'Long Z2 ride' }],
     };
     for (let day = 0; day < 30; day++) {
@@ -394,6 +430,33 @@ const ProFitAgentV5 = () => {
         if (trainingRes.data) setTrainingSessions(trainingRes.data as any);
         if (bodyRes.data) setBodyMetrics(bodyRes.data as any);
         if (milestonesRes.data) setMilestones(milestonesRes.data as any);
+
+        // Load recent gym sessions for coach context
+        try {
+          const { data: gymSessions } = await supabase.from('gym_sessions')
+            .select('*')
+            .eq('user_id', userId)
+            .not('completed_at', 'is', null)
+            .order('date', { ascending: false })
+            .limit(10);
+          if (gymSessions && gymSessions.length > 0) {
+            const enriched = [];
+            for (const gs of gymSessions.slice(0, 5)) {
+              const { data: entries } = await supabase.from('gym_exercise_entries')
+                .select('*, gym_exercises(name)').eq('session_id', gs.id).order('order_index');
+              const entryData = [];
+              if (entries) {
+                for (const e of entries) {
+                  const { data: sets } = await supabase.from('gym_sets')
+                    .select('weight, reps, rpe').eq('entry_id', e.id).order('set_index');
+                  entryData.push({ exercise_name: e.gym_exercises?.name || 'Unknown', sets: sets || [] });
+                }
+              }
+              enriched.push({ ...gs, entries: entryData });
+            }
+            (window as any).__recentGymSessions = enriched;
+          }
+        } catch (e) { console.error('Failed to load gym for coach:', e); }
       }
     }
   };
@@ -1085,8 +1148,8 @@ const HomeScreen = ({ user, onboarding, plan, projection, realism, plannedSessio
         <div className="relative rounded-lg shadow overflow-hidden" style={{ minHeight: 180 }}>
           <div className="absolute inset-0 bg-cover bg-center" style={{
             backgroundImage: `url(${getRaceImageUrl(onboarding.raceLocation)})`,
-            filter: 'brightness(0.35) grayscale(0.7)',
           }} />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/40" />
           <div className="relative z-10 p-6 text-white">
             <div className="flex items-center justify-between mb-3"><h2 className="font-bold text-xl">Race Goal Progress</h2><Target size={28} /></div>
             <div className="text-4xl font-bold mb-1">{weeksToRace} weeks</div>
@@ -1190,7 +1253,7 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
     return { type: 'planned', sports, sessions };
   };
 
-  const sportDotColor: Record<string, string> = { Swim: 'bg-cyan-400', Bike: 'bg-emerald-400', Run: 'bg-rose-400', Strength: 'bg-violet-400' };
+  const sportDotColor: Record<string, string> = { Swim: 'bg-cyan-400', Bike: 'bg-emerald-400', Run: 'bg-rose-400', Strength: 'bg-violet-400', 'Gym - Push': 'bg-red-400', 'Gym - Pull': 'bg-blue-400', 'Gym - Legs': 'bg-green-400' };
 
   const selectedSessions = plannedSessions.filter((s: PlannedSession) => s.date === selectedDate);
   const selectedDayName = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -1236,7 +1299,9 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span> Swim</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Bike</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-rose-400"></span> Run</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-violet-400"></span> Strength</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-400"></span> Gym Push</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-blue-400"></span> Gym Pull</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-green-400"></span> Gym Legs</span>
       </div>
 
       <div className="px-3 py-2">
@@ -1265,11 +1330,14 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
                     <span className={`text-[10px] font-bold ${textClass}`}>{dayNum}</span>
                     {sports && sports.length > 0 && (
                       <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center">
-                        {sports.slice(0, 3).map((sport: string, i: number) => (
-                          <span key={i} className={`text-[7px] font-bold px-1 rounded ${type === 'skipped' ? 'text-gray-400' : type === 'cancelled' ? 'text-amber-500 bg-amber-100' : sport === 'Swim' ? 'text-cyan-600 bg-cyan-100' : sport === 'Bike' ? 'text-emerald-600 bg-emerald-100' : sport === 'Run' ? 'text-rose-600 bg-rose-100' : 'text-violet-600 bg-violet-100'}`}>
-                            {sport === 'Swim' ? 'S' : sport === 'Bike' ? 'B' : sport === 'Run' ? 'R' : 'G'}
-                          </span>
-                        ))}
+                        {sports.slice(0, 3).map((sport: string, i: number) => {
+                          const colorClass = type === 'skipped' ? 'text-gray-400' : type === 'cancelled' ? 'text-amber-500 bg-amber-100' : sport === 'Swim' ? 'text-cyan-600 bg-cyan-100' : sport === 'Bike' ? 'text-emerald-600 bg-emerald-100' : sport === 'Run' ? 'text-rose-600 bg-rose-100' : sport === 'Gym - Push' ? 'text-red-600 bg-red-100' : sport === 'Gym - Pull' ? 'text-blue-600 bg-blue-100' : sport === 'Gym - Legs' ? 'text-green-600 bg-green-100' : 'text-violet-600 bg-violet-100';
+                          return (
+                            <span key={i} className={`text-[6px] font-bold px-0.5 rounded leading-tight ${colorClass}`}>
+                              {sport}
+                            </span>
+                          );
+                        })}
                       </div>
                     )}
                     {type === 'completed' && (
@@ -1295,8 +1363,8 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
             <div className="space-y-2">
               {selectedSessions.map((session: PlannedSession) => (
                 <div key={session.id} className={`flex items-center gap-3 p-3 rounded-lg ${t.sessionBg} ${session.status === 'skipped' ? 'opacity-40' : session.status === 'cancelled' ? 'opacity-60' : ''} transition-colors duration-300`}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${session.sport === 'Swim' ? t.swimIcon : session.sport === 'Bike' ? t.bikeIcon : session.sport === 'Run' ? t.runIcon : t.strengthIcon}`}>
-                    {session.sport === 'Swim' ? '🏊' : session.sport === 'Bike' ? '🚴' : session.sport === 'Run' ? '🏃' : '💪'}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${session.sport === 'Swim' ? t.swimIcon : session.sport === 'Bike' ? t.bikeIcon : session.sport === 'Run' ? t.runIcon : session.sport === 'Gym - Push' ? 'bg-red-100' : session.sport === 'Gym - Pull' ? 'bg-blue-100' : session.sport === 'Gym - Legs' ? 'bg-green-100' : t.strengthIcon}`}>
+                    {session.sport === 'Swim' ? '🏊' : session.sport === 'Bike' ? '🚴' : session.sport === 'Run' ? '🏃' : session.sport?.startsWith('Gym') ? '🏋️' : '💪'}
                   </div>
                   <div className="flex-1">
                     <div className={`font-semibold text-sm ${session.status === 'skipped' ? t.sessionSkippedText + ' line-through' : session.status === 'cancelled' ? t.sessionCancelledText + ' line-through' : t.sessionText}`}>{session.sport} – {session.type}</div>
@@ -1400,8 +1468,8 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
   const total = activeSessions.length;
   const totalHours = (activeSessions.reduce((sum: number, s: PlannedSession) => sum + s.duration, 0) / 60).toFixed(1);
 
-  const sportColor: Record<string, string> = { Swim: 'border-blue-500 bg-blue-50', Bike: 'border-green-500 bg-green-50', Run: 'border-orange-500 bg-orange-50', Strength: 'border-purple-500 bg-purple-50' };
-  const sportEmoji: Record<string, string> = { Swim: '🏊', Bike: '🚴', Run: '🏃', Strength: '💪' };
+  const sportColor: Record<string, string> = { Swim: 'border-blue-500 bg-blue-50', Bike: 'border-green-500 bg-green-50', Run: 'border-orange-500 bg-orange-50', Strength: 'border-purple-500 bg-purple-50', 'Gym - Push': 'border-red-500 bg-red-50', 'Gym - Pull': 'border-blue-500 bg-blue-50', 'Gym - Legs': 'border-green-500 bg-green-50' };
+  const sportEmoji: Record<string, string> = { Swim: '🏊', Bike: '🚴', Run: '🏃', Strength: '💪', 'Gym - Push': '🏋️', 'Gym - Pull': '🏋️', 'Gym - Legs': '🦵' };
   const intensityColor: Record<string, string> = { Easy: 'bg-green-100 text-green-700', Moderate: 'bg-yellow-100 text-yellow-700', Hard: 'bg-red-100 text-red-700' };
 
   const handleSkipSession = async (session: PlannedSession) => {
@@ -1422,7 +1490,7 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
           <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_swim_sessions || 3}</div><div className="text-xs opacity-80">Swims/wk</div></div>
           <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_bike_km || 60}</div><div className="text-xs opacity-80">Bike km/wk</div></div>
           <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_run_km || 25}</div><div className="text-xs opacity-80">Run km/wk</div></div>
-          <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_strength_sessions || 2}</div><div className="text-xs opacity-80">Str/wk</div></div>
+          <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_strength_sessions || 2}</div><div className="text-xs opacity-80">Gym/wk</div></div>
         </div>
       </div>
       <PhaseTimeline onboarding={onboarding} plan={plan} />
@@ -1588,6 +1656,7 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
         const todayStr = new Date().toISOString().split('T')[0];
         return s.status === 'planned' && s.date >= todayStr;
       }).slice(0, 14),
+      recentGymSessions: (window as any).__recentGymSessions || [],
     };
   };
 
@@ -1690,9 +1759,10 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
     "Am I on track for my race goal?",
     "What should I focus on this week?",
     "Should I take a rest day?",
+    "What weight should I aim for on bench press?",
+    "How's my gym progress — any suggestions?",
     "Skip tomorrow's workout — I'm too tired",
     "Add an easy swim session on Saturday",
-    "Move my long bike ride to Sunday",
   ];
 
   return (
@@ -2677,6 +2747,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
   const [activeSession, setActiveSession] = useState<GymSession | null>(null);
   const [sessionEntries, setSessionEntries] = useState<GymExerciseEntry[]>([]);
   const [pastSessions, setPastSessions] = useState<GymSession[]>([]);
+  const [recentSessions, setRecentSessions] = useState<GymSession[]>([]);
   const [templates, setTemplates] = useState<GymTemplate[]>([]);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
@@ -2689,6 +2760,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
   useEffect(() => {
     loadExercises();
     loadPastSessions();
+    loadRecentSessions();
     loadTemplates();
   }, []);
 
@@ -2717,6 +2789,16 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
       .order('date', { ascending: false })
       .limit(50);
     if (data) setPastSessions(data);
+  };
+
+  const loadRecentSessions = async () => {
+    const { data } = await supabase.from('gym_sessions')
+      .select('*')
+      .eq('user_id', user.id)
+      .is('completed_at', null)
+      .order('date', { ascending: false })
+      .limit(10);
+    if (data) setRecentSessions(data);
   };
 
   const loadTemplates = async () => {
@@ -2878,17 +2960,17 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
   };
 
   // ========== FINISH WORKOUT ==========
-  const finishWorkout = async () => {
+  // Save workout as draft (recent) — NOT yet in history
+  const saveWorkout = async () => {
     if (!activeSession) return;
     const totalSetsLogged = sessionEntries.reduce((sum, e) => sum + e.sets.length, 0);
     if (totalSetsLogged === 0) {
       if (!confirm('No sets logged. Discard this workout?')) return;
       await supabase.from('gym_sessions').delete().eq('id', activeSession.id);
     } else {
-      if (!confirm(`Finish workout? (${sessionEntries.length} exercises, ${totalSetsLogged} sets)`)) return;
+      // Save duration but DON'T set completed_at — keeps it as "draft/recent"
       const duration = Math.round(sessionTimer / 60);
       await supabase.from('gym_sessions').update({
-        completed_at: new Date().toISOString(),
         duration_minutes: duration,
       }).eq('id', activeSession.id);
     }
@@ -2898,7 +2980,30 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
     setActiveSession(null);
     setSessionEntries([]);
     setView('home');
+    loadRecentSessions();
     loadPastSessions();
+  };
+
+  // Submit a draft session to history (confirm it)
+  const submitToHistory = async (sessionId: string) => {
+    if (!confirm('Submit this workout to your history?')) return;
+    await supabase.from('gym_sessions').update({
+      completed_at: new Date().toISOString(),
+    }).eq('id', sessionId);
+    loadRecentSessions();
+    loadPastSessions();
+  };
+
+  // Delete a draft or confirmed session
+  const deleteGymSession = async (sessionId: string) => {
+    if (!confirm('Delete this workout? This cannot be undone.')) return;
+    await supabase.from('gym_sessions').delete().eq('id', sessionId);
+    loadRecentSessions();
+    loadPastSessions();
+    if (viewingSession?.id === sessionId) {
+      setViewingSession(null);
+      setView('home');
+    }
   };
 
   const discardWorkout = async () => {
@@ -3040,10 +3145,31 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
           })}
         </div>
 
-        {/* Recent Sessions */}
+        {/* Recent (Draft) Workouts — not yet submitted to history */}
+        {recentSessions.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-amber-600 uppercase tracking-wide mb-2">📝 Recent Training (unsaved)</p>
+            {recentSessions.map(s => {
+              const c = dayTypeColors[s.day_type as keyof typeof dayTypeColors];
+              return (
+                <div key={s.id} className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg shadow-sm mb-2 ring-1 ring-amber-200">
+                  <img src={dayTypeImages[s.day_type as string] || ''} alt={s.day_type} className="w-10 h-10 rounded-lg object-cover" />
+                  <button onClick={() => viewSession(s)} className="flex-1 text-left">
+                    <div className="font-semibold text-sm">{s.day_type} Day</div>
+                    <div className="text-xs text-gray-500">{formatDate(s.date)}{s.duration_minutes ? ` • ${s.duration_minutes}min` : ''}</div>
+                  </button>
+                  <button onClick={() => submitToHistory(s.id!)} className="px-2 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-lg hover:bg-green-200">✅ Save</button>
+                  <button onClick={() => deleteGymSession(s.id!)} className="px-2 py-1.5 bg-red-50 text-red-400 text-xs font-bold rounded-lg hover:bg-red-100">🗑️</button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Confirmed History */}
         {pastSessions.length > 0 && (
           <div>
-            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Recent Sessions</p>
+            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">History</p>
             {pastSessions.slice(0, 5).map(s => {
               const c = dayTypeColors[s.day_type as keyof typeof dayTypeColors];
               return (
@@ -3077,6 +3203,14 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
       <div className="p-4 space-y-3 pb-24">
         {/* Header */}
         <div className={`${c.bg} text-white rounded-xl p-4`}>
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={discardWorkout} className="flex items-center gap-1 text-sm opacity-80 hover:opacity-100">
+              <ArrowLeft size={16} /> Back
+            </button>
+            <button onClick={saveWorkout} className="flex items-center gap-1 px-3 py-1.5 bg-white bg-opacity-20 rounded-lg text-sm font-bold hover:bg-opacity-30">
+              <Save size={14} /> Save Workout
+            </button>
+          </div>
           <div className="flex items-center justify-between">
             <div>
               <div className="font-bold text-lg">{activeSession.day_type} Day</div>
@@ -3195,12 +3329,12 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
             🗑️
           </button>
           <button onClick={saveAsTemplate}
-            className="flex-1 py-3 border rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">
-            💾 Save Template
+            className="py-3 px-3 border rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">
+            💾
           </button>
-          <button onClick={finishWorkout}
+          <button onClick={saveWorkout}
             className={`flex-1 py-3 ${c.bg} text-white rounded-xl text-sm font-bold hover:opacity-90`}>
-            ✅ Finish Workout
+            💾 Save Workout
           </button>
         </div>
 
@@ -3298,8 +3432,9 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
     if (!confirm('Delete this workout? This cannot be undone.')) return;
     await supabase.from('gym_sessions').delete().eq('id', sessionId);
     setPastSessions(prev => prev.filter(s => s.id !== sessionId));
+    setRecentSessions(prev => prev.filter(s => s.id !== sessionId));
     setViewingSession(null);
-    setView('history');
+    setView('home');
   };
 
   if (view === 'session-detail' && viewingSession) {
@@ -3312,7 +3447,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
     return (
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => setView('history')} className="p-2 hover:bg-gray-100 rounded-lg">←</button>
+          <button onClick={() => setView('history')} className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft size={18} /></button>
           <h2 className="text-xl font-bold text-gray-900 flex-1">Session Detail</h2>
           <button onClick={() => deleteSession(viewingSession.id!)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-sm">🗑️</button>
         </div>
@@ -3331,7 +3466,17 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
             <span>📊 {totalSets} sets</span>
           </div>
           <div className="text-xs mt-1 opacity-60">Volume: {Math.round(totalVolume).toLocaleString()}kg</div>
+          {!viewingSession.completed_at && (
+            <div className="mt-2 text-xs text-amber-200">⚠️ Draft — not yet saved to history</div>
+          )}
         </div>
+
+        {!viewingSession.completed_at && (
+          <button onClick={() => submitToHistory(viewingSession.id!)}
+            className="w-full py-3 bg-green-500 text-white rounded-xl text-sm font-bold hover:bg-green-600">
+            ✅ Submit to History
+          </button>
+        )}
 
         {viewingEntries.map((entry, i) => (
           <div key={i} className="bg-white rounded-xl shadow-sm overflow-hidden">
