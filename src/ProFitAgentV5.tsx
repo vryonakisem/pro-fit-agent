@@ -572,7 +572,7 @@ const ProFitAgentV5 = () => {
           )}
           {activeScreen === 'calendar' && <CalendarScreen plannedSessions={plannedSessions} milestones={milestones} />}
           {activeScreen === 'log' && <LogScreen onLogTraining={handleLogTraining} onLogBody={handleLogBody} setActiveScreen={setActiveScreen} />}
-          {activeScreen === 'plan' && <PlanScreen plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} onboarding={onboardingData} milestones={milestones} />}
+          {activeScreen === 'plan' && <PlanScreen plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} onboarding={onboardingData} milestones={milestones} user={user} supabase={supabase} />}
           {activeScreen === 'coach' && <CoachScreen onboarding={onboardingData} plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} trainingSessions={trainingSessions} bodyMetrics={bodyMetrics} />}
           {activeScreen === 'nutrition' && <NutritionScreen onboarding={onboardingData} plan={plan} trainingSessions={trainingSessions} />}
           {activeScreen === 'gym' && <GymScreen supabase={supabase} user={user} />}
@@ -674,7 +674,7 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Pro Fit Agent</h1>
-          <p className="text-gray-500 text-sm">Cloud-Powered Training System</p>
+          
         </div>
 
         {mode === 'choose' && (
@@ -883,7 +883,7 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate, userPrefs, 
     <>
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg">
         <div className="flex items-center justify-between">
-          <div><h1 className="text-2xl font-bold">Pro Fit Agent</h1><p className="text-sm opacity-90">Cloud Training System</p></div>
+          <div><h1 className="text-2xl font-bold">Pro Fit Agent</h1></div>
           <button onClick={() => setShowMenu(!showMenu)}
             className="w-10 h-10 rounded-full flex items-center justify-center font-bold hover:ring-2 hover:ring-white/50 text-sm transition-all"
             style={{ backgroundColor: userPrefs.avatar_color || '#6366f1' }}>
@@ -1446,8 +1446,34 @@ const LogScreen = ({ onLogTraining, onLogBody, setActiveScreen }: any) => {
 // PLAN SCREEN
 // ============================================================================
 
-const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, milestones }: any) => {
+const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, milestones, user, supabase }: any) => {
   const [weekOffset, setWeekOffset] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refreshPlan = async () => {
+    setRefreshing(true);
+    // Delete future planned sessions (keep completed/skipped)
+    const today = new Date().toISOString().split('T')[0];
+    await supabase.from('planned_sessions').delete()
+      .eq('user_id', user.id)
+      .eq('status', 'planned')
+      .gte('date', today);
+    // Generate new 30-day sessions with gym types
+    const sessions = PlanningEngine.generate30DaySessions(user.id);
+    // Only insert sessions for dates that don't already have completed/skipped
+    const { data: existing } = await supabase.from('planned_sessions').select('date, sport')
+      .eq('user_id', user.id).gte('date', today);
+    const existingKeys = new Set((existing || []).map((e: any) => `${e.date}-${e.sport}`));
+    const newSessions = sessions.filter((s: any) => !existingKeys.has(`${s.date}-${s.sport}`));
+    if (newSessions.length > 0) {
+      await supabase.from('planned_sessions').insert(newSessions);
+    }
+    // Reload all sessions
+    const { data: all } = await supabase.from('planned_sessions').select('*')
+      .eq('user_id', user.id).order('date', { ascending: true });
+    if (all) setPlannedSessions(all);
+    setRefreshing(false);
+  };
   const getWeekDates = (offset: number) => {
     const now = new Date(); const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay() + (offset * 7));
@@ -1484,7 +1510,7 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
   return (
     <div className="p-4 space-y-4">
       <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow p-5">
-        <div className="flex items-center justify-between mb-2"><h2 className="font-bold text-xl">Training Plan</h2><Target size={28} /></div>
+        <div className="flex items-center justify-between mb-2"><h2 className="font-bold text-xl">Training Plan</h2><button onClick={refreshPlan} disabled={refreshing} className="px-3 py-1 bg-white bg-opacity-20 rounded-lg text-xs font-bold hover:bg-opacity-30">{refreshing ? '⏳' : '🔄'} Refresh</button></div>
         <div className="text-sm opacity-90 mb-3">{plan?.phase || 'Base'} Phase • Race: {formatRaceDate(onboarding.raceDate)}</div>
         <div className="grid grid-cols-4 gap-2 text-center">
           <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_swim_sessions || 3}</div><div className="text-xs opacity-80">Swims/wk</div></div>
@@ -2148,17 +2174,17 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
       </div>
 
       {/* Race location preview on Race Info tab */}
-      {accountTab === 'raceInfo' && form.raceLocation && (
+      {accountTab === 'raceInfo' && onboarding.raceLocation && (
         <div className="relative rounded-xl overflow-hidden" style={{ height: 120 }}>
           <div className="absolute inset-0 bg-cover bg-center" style={{
-            backgroundImage: `url(${getRaceImageUrl(form.raceLocation)})`,
+            backgroundImage: `url(${getRaceImageUrl(onboarding.raceLocation)})`,
             filter: 'brightness(0.4) grayscale(0.7)',
           }} />
           <div className="relative z-10 p-4 text-white flex items-end h-full">
             <div>
               <div className="text-xs opacity-70">📍 Race Location</div>
-              <div className="font-bold text-lg">{form.raceLocation}</div>
-              {form.raceName && <div className="text-sm opacity-80">{form.raceName}</div>}
+              <div className="font-bold text-lg">{onboarding.raceLocation}</div>
+              {onboarding.raceName && <div className="text-sm opacity-80">{onboarding.raceName}</div>}
             </div>
           </div>
         </div>
@@ -2965,7 +2991,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
     if (!activeSession) return;
     const totalSetsLogged = sessionEntries.reduce((sum, e) => sum + e.sets.length, 0);
     if (totalSetsLogged === 0) {
-      if (!confirm('No sets logged. Discard this workout?')) return;
+      
       await supabase.from('gym_sessions').delete().eq('id', activeSession.id);
     } else {
       // Save duration but DON'T set completed_at — keeps it as "draft/recent"
@@ -2986,7 +3012,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
 
   // Submit a draft session to history (confirm it)
   const submitToHistory = async (sessionId: string) => {
-    if (!confirm('Submit this workout to your history?')) return;
+    
     await supabase.from('gym_sessions').update({
       completed_at: new Date().toISOString(),
     }).eq('id', sessionId);
@@ -2996,7 +3022,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
 
   // Delete a draft or confirmed session
   const deleteGymSession = async (sessionId: string) => {
-    if (!confirm('Delete this workout? This cannot be undone.')) return;
+    
     await supabase.from('gym_sessions').delete().eq('id', sessionId);
     loadRecentSessions();
     loadPastSessions();
@@ -3008,7 +3034,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
 
   const discardWorkout = async () => {
     if (!activeSession) return;
-    if (!confirm('Discard this workout? All logged sets will be deleted.')) return;
+    
     await supabase.from('gym_sessions').delete().eq('id', activeSession.id);
     if (timerInterval) clearInterval(timerInterval);
     setTimerIntervalState(null);
@@ -3429,7 +3455,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
   // ========================================================================
   // Delete a gym session
   const deleteSession = async (sessionId: string) => {
-    if (!confirm('Delete this workout? This cannot be undone.')) return;
+    
     await supabase.from('gym_sessions').delete().eq('id', sessionId);
     setPastSessions(prev => prev.filter(s => s.id !== sessionId));
     setRecentSessions(prev => prev.filter(s => s.id !== sessionId));

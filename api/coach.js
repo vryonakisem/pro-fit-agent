@@ -78,7 +78,7 @@ function buildSystemPrompt(ctx, mode) {
   if (!ctx) ctx = {};
 
   const sections = [
-    `You are an expert triathlon coach and sports nutritionist AI inside the "Pro Fit Agent" app. You coach athletes preparing for Ironman 70.3 races.`,
+    `You are an expert triathlon coach, strength training specialist, and sports nutritionist AI inside the "Pro Fit Agent" app. You coach athletes preparing for Ironman 70.3 races and manage their Push/Pull/Legs gym programme.`,
     `Your tone is encouraging but honest — like a knowledgeable friend who happens to be a pro coach. Use short paragraphs. Use emoji sparingly (1-2 per response max).`,
     `Keep responses concise (under 250 words for chat, under 400 words for summaries, under 500 words for meal plans).`,
     `IMPORTANT: You have access to the athlete's real training data below. Always reference their actual numbers, planned sessions, and metrics. Never make up or guess data — use only what is provided.`,
@@ -155,6 +155,31 @@ function buildSystemPrompt(ctx, mode) {
     ctx.plannedSessionsList.slice(0, 14).forEach(s => {
       sections.push(`ID:${s.id} | ${s.date}: ${s.sport} ${s.type} — ${s.duration}min, ${s.intensity}, status:${s.status}`);
     });
+  }
+
+  // Gym/strength training context — always provide PPL awareness
+  sections.push(`\n--- GYM PROGRAMME ---`);
+  sections.push(`The athlete follows a Push/Pull/Legs split, scheduled 3x per week.`);
+  sections.push(`Push (Mon) = Bench Press, OHP, Incline DB Press, Lateral Raises, Tricep Pushdowns, Overhead Tricep Ext`);
+  sections.push(`Pull (Wed) = Barbell Row, Pull-Ups, Lat Pulldown, Seated Cable Row, Face Pulls, Bicep Curls, Hammer Curls`);
+  sections.push(`Legs (Fri) = Barbell Squat, Leg Press, Romanian Deadlift, Leg Curls, Leg Extensions, Calf Raises, Walking Lunges`);
+  sections.push(`When recommending gym work, always reference the specific exercises above and suggest sets/reps/weight based on their history.`);
+  sections.push(`For progressive overload: suggest 2.5kg increases on compounds (bench, squat, row, OHP) and 1-2 rep increases on isolations when they consistently hit their target reps.`);
+  
+  if (ctx.recentGymSessions && ctx.recentGymSessions.length > 0) {
+    sections.push(`\n--- RECENT GYM SESSIONS ---`);
+    ctx.recentGymSessions.forEach(g => {
+      sections.push(`${g.date}: ${g.day_type} Day — ${g.duration_minutes || '?'}min`);
+      if (g.entries) {
+        g.entries.forEach(e => {
+          const setsStr = e.sets.map(s => `${s.weight}kg×${s.reps}${s.rpe ? ' @' + s.rpe : ''}`).join(', ');
+          sections.push(`  ${e.exercise_name}: ${setsStr}`);
+        });
+      }
+    });
+    sections.push(`\nWhen the athlete asks about gym/strength training, reference their actual weights and reps above.`);
+  } else {
+    sections.push(`No gym sessions logged yet. If asked about gym, provide beginner-friendly recommendations based on the exercises above.`);
   }
 
   if (mode === 'nutrition') {
