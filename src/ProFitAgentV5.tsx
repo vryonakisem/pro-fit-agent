@@ -2713,6 +2713,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
     const { data } = await supabase.from('gym_sessions')
       .select('*')
       .eq('user_id', user.id)
+      .not('completed_at', 'is', null)
       .order('date', { ascending: false })
       .limit(50);
     if (data) setPastSessions(data);
@@ -2879,11 +2880,18 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
   // ========== FINISH WORKOUT ==========
   const finishWorkout = async () => {
     if (!activeSession) return;
-    const duration = Math.round(sessionTimer / 60);
-    await supabase.from('gym_sessions').update({
-      completed_at: new Date().toISOString(),
-      duration_minutes: duration,
-    }).eq('id', activeSession.id);
+    const totalSetsLogged = sessionEntries.reduce((sum, e) => sum + e.sets.length, 0);
+    if (totalSetsLogged === 0) {
+      if (!confirm('No sets logged. Discard this workout?')) return;
+      await supabase.from('gym_sessions').delete().eq('id', activeSession.id);
+    } else {
+      if (!confirm(`Finish workout? (${sessionEntries.length} exercises, ${totalSetsLogged} sets)`)) return;
+      const duration = Math.round(sessionTimer / 60);
+      await supabase.from('gym_sessions').update({
+        completed_at: new Date().toISOString(),
+        duration_minutes: duration,
+      }).eq('id', activeSession.id);
+    }
 
     if (timerInterval) clearInterval(timerInterval);
     setTimerIntervalState(null);
@@ -2891,6 +2899,17 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
     setSessionEntries([]);
     setView('home');
     loadPastSessions();
+  };
+
+  const discardWorkout = async () => {
+    if (!activeSession) return;
+    if (!confirm('Discard this workout? All logged sets will be deleted.')) return;
+    await supabase.from('gym_sessions').delete().eq('id', activeSession.id);
+    if (timerInterval) clearInterval(timerInterval);
+    setTimerIntervalState(null);
+    setActiveSession(null);
+    setSessionEntries([]);
+    setView('home');
   };
 
   // ========== SAVE AS TEMPLATE ==========
@@ -2963,6 +2982,12 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
     Legs: { bg: 'bg-green-500', light: 'bg-green-50', text: 'text-green-700', ring: 'ring-green-200' },
   };
 
+  const dayTypeImages: Record<string, string> = {
+    Push: `${EXERCISE_IMG_BASE}/day-types/push.jpg`,
+    Pull: `${EXERCISE_IMG_BASE}/day-types/pull.jpg`,
+    Legs: `${EXERCISE_IMG_BASE}/day-types/legs.jpg`,
+  };
+
   // ========================================================================
   // HOME VIEW
   // ========================================================================
@@ -2991,9 +3016,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
               <div key={dt} className={`bg-white rounded-xl shadow-sm overflow-hidden ring-1 ${c.ring}`}>
                 <button onClick={() => startWorkout(dt)}
                   className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
-                  <div className={`w-14 h-14 ${c.bg} rounded-xl flex items-center justify-center`}>
-                    <span className="text-white text-2xl font-black">{dt[0]}</span>
-                  </div>
+                  <img src={dayTypeImages[dt]} alt={dt} className="w-14 h-14 rounded-xl object-cover" />
                   <div className="flex-1 text-left">
                     <div className="font-bold text-gray-900">{dt} Day</div>
                     <div className="text-xs text-gray-500">
@@ -3026,9 +3049,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
               return (
                 <button key={s.id} onClick={() => viewSession(s)}
                   className="w-full flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm mb-2 hover:bg-gray-50">
-                  <div className={`w-10 h-10 ${c.bg} rounded-lg flex items-center justify-center`}>
-                    <span className="text-white font-bold text-sm">{s.day_type[0]}</span>
-                  </div>
+                  <img src={dayTypeImages[s.day_type as string] || ''} alt={s.day_type} className="w-10 h-10 rounded-lg object-cover" />
                   <div className="flex-1 text-left">
                     <div className="font-semibold text-sm">{s.day_type} Day</div>
                     <div className="text-xs text-gray-500">{formatDate(s.date)}</div>
@@ -3169,6 +3190,10 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
 
         {/* Bottom Actions */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-3 flex gap-2" style={{ maxWidth: 480, margin: '0 auto' }}>
+          <button onClick={discardWorkout}
+            className="py-3 px-3 border border-red-200 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-50">
+            🗑️
+          </button>
           <button onClick={saveAsTemplate}
             className="flex-1 py-3 border rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">
             💾 Save Template
@@ -3247,9 +3272,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
                   return (
                     <button key={s.id} onClick={() => viewSession(s)}
                       className="w-full flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm mb-2 hover:bg-gray-50">
-                      <div className={`w-10 h-10 ${c.bg} rounded-lg flex items-center justify-center`}>
-                        <span className="text-white font-bold text-sm">{s.day_type[0]}</span>
-                      </div>
+                      <img src={dayTypeImages[s.day_type as string] || ''} alt={s.day_type} className="w-10 h-10 rounded-lg object-cover" />
                       <div className="flex-1 text-left">
                         <div className="font-semibold text-sm">{s.day_type} Day</div>
                         <div className="text-xs text-gray-500">{formatDate(s.date)}</div>
@@ -3270,6 +3293,15 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
   // ========================================================================
   // SESSION DETAIL VIEW
   // ========================================================================
+  // Delete a gym session
+  const deleteSession = async (sessionId: string) => {
+    if (!confirm('Delete this workout? This cannot be undone.')) return;
+    await supabase.from('gym_sessions').delete().eq('id', sessionId);
+    setPastSessions(prev => prev.filter(s => s.id !== sessionId));
+    setViewingSession(null);
+    setView('history');
+  };
+
   if (view === 'session-detail' && viewingSession) {
     const c = dayTypeColors[viewingSession.day_type as keyof typeof dayTypeColors];
     const totalSets = viewingEntries.reduce((sum, e) => sum + e.sets.length, 0);
@@ -3281,12 +3313,18 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-3">
           <button onClick={() => setView('history')} className="p-2 hover:bg-gray-100 rounded-lg">←</button>
-          <h2 className="text-xl font-bold text-gray-900">Session Detail</h2>
+          <h2 className="text-xl font-bold text-gray-900 flex-1">Session Detail</h2>
+          <button onClick={() => deleteSession(viewingSession.id!)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-sm">🗑️</button>
         </div>
 
         <div className={`${c.bg} text-white rounded-xl p-4`}>
-          <div className="font-bold text-lg">{viewingSession.day_type} Day</div>
-          <div className="text-sm opacity-80">{formatDate(viewingSession.date)}</div>
+          <div className="flex items-center gap-3">
+            <img src={dayTypeImages[viewingSession.day_type] || ''} alt="" className="w-12 h-12 rounded-lg object-cover opacity-80" />
+            <div>
+              <div className="font-bold text-lg">{viewingSession.day_type} Day</div>
+              <div className="text-sm opacity-80">{formatDate(viewingSession.date)}</div>
+            </div>
+          </div>
           <div className="flex gap-4 mt-2 text-sm opacity-80">
             {viewingSession.duration_minutes && <span>⏱ {viewingSession.duration_minutes}min</span>}
             <span>💪 {viewingEntries.length} exercises</span>
