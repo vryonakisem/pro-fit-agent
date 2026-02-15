@@ -1471,34 +1471,47 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
       const today = new Date().toISOString().split('T')[0];
       
       // 1. Get all existing sessions
-      const { data: existing } = await supabase.from('planned_sessions').select('*')
+      const { data: existing, error: fetchErr } = await supabase.from('planned_sessions').select('*')
         .eq('user_id', user.id);
+      if (fetchErr) { console.error('Fetch error:', fetchErr); setRefreshing(false); return; }
       
       // 2. Keep past sessions + completed/skipped future sessions
-      const toKeep = (existing || []).filter((s: any) => 
-        s.date < today || s.status === 'completed' || s.status === 'skipped'
-      );
       const toDeleteIds = (existing || []).filter((s: any) => 
         s.date >= today && s.status === 'planned'
       ).map((s: any) => s.id);
       
       // 3. Delete only future planned (not completed/skipped)
       if (toDeleteIds.length > 0) {
-        await supabase.from('planned_sessions').delete().in('id', toDeleteIds);
+        // Delete in batches of 50 to avoid query size limits
+        for (let i = 0; i < toDeleteIds.length; i += 50) {
+          const batch = toDeleteIds.slice(i, i + 50);
+          const { error: delErr } = await supabase.from('planned_sessions').delete().in('id', batch);
+          if (delErr) console.error('Delete batch error:', delErr);
+        }
       }
       
       // 4. Generate new sessions
       const newSessions = PlanningEngine.generate30DaySessions(user.id);
       
       // 5. Filter out dates that already have a kept session for the same sport
-      const keptKeys = new Set(toKeep.filter((s: any) => s.date >= today).map((s: any) => `${s.date}-${s.sport}`));
+      const { data: keptData } = await supabase.from('planned_sessions').select('date, sport')
+        .eq('user_id', user.id).gte('date', today);
+      const keptKeys = new Set((keptData || []).map((s: any) => `${s.date}-${s.sport}`));
       const toInsert = newSessions.filter((s: any) => !keptKeys.has(`${s.date}-${s.sport}`));
       
-      if (toInsert.length > 0) {
-        await supabase.from('planned_sessions').insert(toInsert);
+      // 6. Insert one by one to handle any constraint errors gracefully
+      let inserted = 0;
+      for (const session of toInsert) {
+        const { error: insErr } = await supabase.from('planned_sessions').insert(session);
+        if (insErr) {
+          console.error('Insert error for', session.sport, session.date, ':', insErr.message);
+        } else {
+          inserted++;
+        }
       }
+      console.log(`Refresh: deleted ${toDeleteIds.length}, inserted ${inserted}/${toInsert.length}`);
       
-      // 6. Reload everything
+      // 7. Reload everything
       const { data: all } = await supabase.from('planned_sessions').select('*')
         .eq('user_id', user.id).order('date', { ascending: true });
       if (all) setPlannedSessions(all);
@@ -3588,3 +3601,4 @@ const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string; setActiveTa
 );
 
 export default ProFitAgentV5;
+
