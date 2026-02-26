@@ -162,7 +162,6 @@ function onboardingFromDb(row: any): OnboardingData {
 // ERROR HANDLING
 // ============================================================================
 
-// Format race date nicely: "2026-09-21" → "Sept 21st, 2026"
 function formatRaceDate(dateStr: string): string {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
@@ -172,7 +171,6 @@ function formatRaceDate(dateStr: string): string {
   return `${months[d.getMonth()]} ${day}${suffix}, ${d.getFullYear()}`;
 }
 
-// Map of known cities to reliable Unsplash photo URLs
 const cityImageMap: Record<string, string> = {
   'cascais': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=400&fit=crop',
   'portugal': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=400&fit=crop',
@@ -202,7 +200,6 @@ function getRaceImageUrl(location: string): string {
   for (const [key, url] of Object.entries(cityImageMap)) {
     if (lower.includes(key)) return url;
   }
-  // Default scenic image for unknown locations
   return 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800&h=400&fit=crop';
 }
 
@@ -243,7 +240,7 @@ const ToastProvider = ({ children }: { children: React.ReactNode }) => {
       {children}
       {toast && (
         <div className={`fixed top-4 left-4 right-4 z-[100] p-4 rounded-lg shadow-lg text-white text-sm font-medium ${
-          toast.type === 'error' ? 'bg-red-600' : toast.type === 'success' ? 'bg-green-600' : 'bg-blue-600'
+          toast.type === 'error' ? 'bg-red-600' : toast.type === 'success' ? 'bg-green-600' : 'bg-gray-800'
         }`}>
           <div className="flex items-center gap-2">
             {toast.type === 'error' && <AlertTriangle size={18} />}
@@ -265,7 +262,7 @@ const useToast = () => React.useContext(ToastContext);
 const calThemes = {
   dark: {
     bg: 'bg-gray-950', statCard: 'bg-gray-900', statText: 'text-white', legendText: 'text-gray-400',
-    weekLabel: 'text-gray-600', weekLabelActive: 'text-blue-400', dayHeader: 'text-gray-400',
+    weekLabel: 'text-gray-600', weekLabelActive: 'text-yellow-400', dayHeader: 'text-gray-400',
     currentWeekBg: 'bg-gray-900 bg-opacity-50', dayDefault: 'text-gray-300', dayFuture: 'text-gray-500',
     dayCompleted: 'text-emerald-300', daySkipped: 'text-gray-600',
     cellCompleted: 'bg-gray-800 ring-2 ring-emerald-400', cellPartial: 'bg-gray-800 ring-2 ring-yellow-400',
@@ -274,13 +271,13 @@ const calThemes = {
     dotSkipped: 'bg-gray-700', dotCancelled: 'bg-amber-700', dotPlanned: 'bg-gray-500',
     detailBg: 'bg-gray-900', detailTitle: 'text-gray-300', detailRestText: 'text-gray-600',
     sessionBg: 'bg-gray-800', sessionText: 'text-white', sessionSkippedText: 'text-gray-500', sessionCancelledText: 'text-amber-400', sessionMeta: 'text-gray-400',
-    badgeCompleted: 'bg-emerald-900 text-emerald-300', badgeSkipped: 'bg-gray-700 text-gray-400', badgeCancelled: 'bg-amber-900 text-amber-300', badgePlanned: 'bg-blue-900 text-blue-300',
+    badgeCompleted: 'bg-emerald-900 text-emerald-300', badgeSkipped: 'bg-gray-700 text-gray-400', badgeCancelled: 'bg-amber-900 text-amber-300', badgePlanned: 'bg-yellow-900 text-yellow-300',
     swimIcon: 'bg-cyan-900', bikeIcon: 'bg-emerald-900', runIcon: 'bg-rose-900', strengthIcon: 'bg-violet-900',
   },
   light: {
     bg: 'bg-gray-50', statCard: 'bg-white shadow-sm', statText: 'text-gray-900', legendText: 'text-gray-500',
-    weekLabel: 'text-gray-400', weekLabelActive: 'text-blue-600', dayHeader: 'text-gray-500',
-    currentWeekBg: 'bg-blue-50', dayDefault: 'text-gray-700', dayFuture: 'text-gray-400',
+    weekLabel: 'text-gray-400', weekLabelActive: 'text-yellow-600', dayHeader: 'text-gray-500',
+    currentWeekBg: 'bg-yellow-50', dayDefault: 'text-gray-700', dayFuture: 'text-gray-400',
     dayCompleted: 'text-emerald-600', daySkipped: 'text-gray-400',
     cellCompleted: 'bg-emerald-50 ring-2 ring-emerald-400', cellPartial: 'bg-yellow-50 ring-2 ring-yellow-400',
     cellPlanned: 'bg-white ring-1 ring-gray-300', cellPlannedFuture: 'bg-gray-100 ring-1 ring-gray-200',
@@ -288,7 +285,7 @@ const calThemes = {
     dotSkipped: 'bg-gray-300', dotCancelled: 'bg-amber-400', dotPlanned: 'bg-gray-400',
     detailBg: 'bg-white shadow-sm', detailTitle: 'text-gray-700', detailRestText: 'text-gray-400',
     sessionBg: 'bg-gray-50', sessionText: 'text-gray-900', sessionSkippedText: 'text-gray-400', sessionCancelledText: 'text-amber-600', sessionMeta: 'text-gray-500',
-    badgeCompleted: 'bg-emerald-100 text-emerald-700', badgeSkipped: 'bg-gray-200 text-gray-500', badgeCancelled: 'bg-amber-100 text-amber-700', badgePlanned: 'bg-blue-100 text-blue-700',
+    badgeCompleted: 'bg-emerald-100 text-emerald-700', badgeSkipped: 'bg-gray-200 text-gray-500', badgeCancelled: 'bg-amber-100 text-amber-700', badgePlanned: 'bg-yellow-100 text-yellow-700',
     swimIcon: 'bg-cyan-100', bikeIcon: 'bg-emerald-100', runIcon: 'bg-rose-100', strengthIcon: 'bg-violet-100',
   },
 };
@@ -388,7 +385,7 @@ const ProFitAgentV5 = () => {
   const [plan, setPlan] = useState<any>(null);
   const [realism, setRealism] = useState<any>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [userPrefs, setUserPrefs] = useState<UserPrefs>({ avatar_emoji: null, avatar_color: '#6366f1' });
+  const [userPrefs, setUserPrefs] = useState<UserPrefs>({ avatar_emoji: null, avatar_color: '#FFCB00' });
 
   useEffect(() => {
     checkUser();
@@ -414,11 +411,10 @@ const ProFitAgentV5 = () => {
     const { data: onboardingRow } = await safeQuery(
       () => supabase.from('onboarding_data').select('*').eq('user_id', userId).maybeSingle(), 'loadOnboarding'
     );
-    // Load user preferences (avatar etc)
     const { data: prefsRow } = await safeQuery(
       () => supabase.from('user_preferences').select('avatar_emoji, avatar_color').eq('user_id', userId).maybeSingle(), 'loadPrefs'
     );
-    if (prefsRow) setUserPrefs({ avatar_emoji: prefsRow.avatar_emoji, avatar_color: prefsRow.avatar_color || '#6366f1' });
+    if (prefsRow) setUserPrefs({ avatar_emoji: prefsRow.avatar_emoji, avatar_color: prefsRow.avatar_color || '#FFCB00' });
 
     if (onboardingRow) {
       const onboarding = onboardingFromDb(onboardingRow);
@@ -437,7 +433,6 @@ const ProFitAgentV5 = () => {
         if (bodyRes.data) setBodyMetrics(bodyRes.data as any);
         if (milestonesRes.data) setMilestones(milestonesRes.data as any);
 
-        // Load recent gym sessions for coach context
         try {
           const { data: gymSessions } = await supabase.from('gym_sessions')
             .select('*')
@@ -470,7 +465,6 @@ const ProFitAgentV5 = () => {
   const handleAuth = async (authUser: AppUser) => {
     setUser(authUser);
     setDataLoading(true);
-    // Try to init profile (will fail silently for existing users due to unique constraint)
     await safeQuery(() => supabase.from('user_profiles').insert({ user_id: authUser.id }), 'initProfile');
     await safeQuery(() => supabase.from('user_preferences').insert({ user_id: authUser.id }), 'initPrefs');
     await safeQuery(() => supabase.from('billing_info').insert({ user_id: authUser.id, plan: 'free', status: 'active' }), 'initBilling');
@@ -499,7 +493,6 @@ const ProFitAgentV5 = () => {
     setRealism(PlanningEngine.checkGoalRealism(data));
     setOnboardingData({ ...data, completed: true });
 
-    // Generate milestones
     if (data.raceDate) {
       const raceDate = new Date(data.raceDate);
       const now = new Date();
@@ -563,11 +556,16 @@ const ProFitAgentV5 = () => {
   if (loading || dataLoading) {
     const userName = user?.user_metadata?.full_name?.split(' ')[0] || '';
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-center">
-          <Loader className="animate-spin mx-auto mb-4" size={48} />
-          <p className="text-xl font-bold">{userName ? `Welcome back, ${userName}!` : 'Loading...'}</p>
-          {userName && <p className="text-sm opacity-70 mt-1">Loading your training data...</p>}
+          <div className="mb-6">
+            {/* Huel wordmark */}
+            <span className="text-4xl font-black tracking-tight" style={{ color: '#FFCB00' }}>Huel</span>
+            <span className="text-4xl font-black tracking-tight text-white ml-2">Fit</span>
+          </div>
+          <Loader className="animate-spin mx-auto mb-4" size={36} style={{ color: '#FFCB00' }} />
+          <p className="text-lg font-bold">{userName ? `Welcome back, ${userName}!` : 'Loading...'}</p>
+          {userName && <p className="text-sm opacity-50 mt-1">Loading your training data...</p>}
         </div>
       </div>
     );
@@ -600,7 +598,7 @@ const ProFitAgentV5 = () => {
 };
 
 // ============================================================================
-// AUTH FLOW — PIN for Manolis + Normal signup for others
+// AUTH FLOW
 // ============================================================================
 
 const MANOLIS_EMAIL = 'manolis@profitagent.app';
@@ -638,13 +636,11 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
     setLoading(true);
     setError('');
     try {
-      // Try to sign in with Manolis's account using PIN as password
       const { data, error: signInErr } = await supabase.auth.signInWithPassword({
         email: MANOLIS_EMAIL,
         password: pinCode,
       });
       if (signInErr) {
-        // If account doesn't exist yet, create it with default PIN
         if (pinCode === DEFAULT_PIN) {
           const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
             email: MANOLIS_EMAIL,
@@ -685,17 +681,22 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Pro Fit Agent</h1>
-          
+          {/* Huel wordmark */}
+          <div className="mb-2">
+            <span className="text-4xl font-black tracking-tight text-black">Huel</span>
+            <span className="text-4xl font-black tracking-tight ml-2" style={{ color: '#FFCB00' }}>Fit</span>
+          </div>
+          <p className="text-sm text-gray-400">Ironman 70.3 Training</p>
         </div>
 
         {mode === 'choose' && (
           <div className="space-y-3">
             <button onClick={() => { setMode('pin'); setTimeout(() => pinRefs[0]?.current?.focus(), 100); }}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-3 hover:shadow-lg transition-shadow">
+              className="w-full text-black py-4 rounded-xl font-semibold flex items-center justify-center gap-3 hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: '#FFCB00' }}>
               <Lock size={20} /> Manolis — Enter PIN
             </button>
             <div className="flex items-center gap-3 py-2">
@@ -708,7 +709,7 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
               Sign In with Email
             </button>
             <button onClick={() => setMode('signup')}
-              className="w-full text-sm text-blue-600 hover:underline py-1">
+              className="w-full text-sm text-gray-500 hover:underline py-1">
               Create new account
             </button>
           </div>
@@ -716,8 +717,8 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
 
         {mode === 'pin' && (
           <div className="text-center">
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock size={28} className="text-purple-600" />
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#FFCB00' }}>
+              <Lock size={28} className="text-black" />
             </div>
             <h2 className="text-xl font-bold mb-1">Welcome back, Manolis</h2>
             <p className="text-gray-500 text-sm mb-6">Enter your 6-digit PIN</p>
@@ -726,11 +727,11 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
                 <input key={i} ref={pinRefs[i]} type="text" inputMode="numeric" maxLength={1}
                   value={digit} onChange={(e) => handlePinChange(i, e.target.value)}
                   onKeyDown={(e) => handlePinKeyDown(i, e)}
-                  className={`w-11 h-14 text-center text-2xl font-bold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 ${error ? 'border-red-400 shake' : 'border-gray-200'}`} />
+                  className={`w-11 h-14 text-center text-2xl font-bold border-2 rounded-xl focus:outline-none focus:ring-2 ${error ? 'border-red-400 shake' : 'border-gray-200 focus:ring-yellow-400'}`} />
               ))}
             </div>
             {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-            {loading && <Loader className="animate-spin mx-auto text-purple-500" size={24} />}
+            {loading && <Loader className="animate-spin mx-auto" size={24} style={{ color: '#FFCB00' }} />}
             <button onClick={() => { setMode('choose'); setPin(['', '', '', '', '', '']); setError(''); }}
               className="text-sm text-gray-500 hover:underline mt-4">Back</button>
           </div>
@@ -739,8 +740,10 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
         {(mode === 'signin' || mode === 'signup') && (
           <>
             <div className="flex gap-2 mb-6">
-              <button onClick={() => { setMode('signin'); setError(''); }} className={`flex-1 py-2 rounded font-semibold ${mode === 'signin' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Sign In</button>
-              <button onClick={() => { setMode('signup'); setError(''); }} className={`flex-1 py-2 rounded font-semibold ${mode === 'signup' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Sign Up</button>
+              <button onClick={() => { setMode('signin'); setError(''); }}
+                className={`flex-1 py-2 rounded font-semibold ${mode === 'signin' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700'}`}>Sign In</button>
+              <button onClick={() => { setMode('signup'); setError(''); }}
+                className={`flex-1 py-2 rounded font-semibold ${mode === 'signup' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700'}`}>Sign Up</button>
             </div>
             {error && <div className="bg-red-50 text-red-800 p-3 rounded mb-4 text-sm flex items-center gap-2"><AlertTriangle size={16} />{error}</div>}
             <div className="space-y-4">
@@ -749,7 +752,8 @@ const AuthFlow = ({ onAuth }: { onAuth: (user: AppUser) => void }) => {
               )}
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border rounded-lg" placeholder="you@example.com" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border rounded-lg" placeholder="••••••••" onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} /></div>
-              <button onClick={handleSubmit} disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
+              <button onClick={handleSubmit} disabled={loading}
+                className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-900 disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading && <Loader className="animate-spin" size={18} />}
                 {loading ? 'Please wait...' : mode === 'signup' ? 'Create Account' : 'Sign In'}
               </button>
@@ -784,15 +788,19 @@ const OnboardingFlow = ({ user, data, onComplete }: any) => {
   const prevStep = () => { if (onboarding.step > 1) setOnboarding({ ...onboarding, step: onboarding.step - 1 }); };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full">
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">Get Started</h2>
+            <div>
+              <span className="text-xl font-black text-black">Huel</span>
+              <span className="text-xl font-black ml-1" style={{ color: '#FFCB00' }}>Fit</span>
+              <span className="text-xl font-semibold text-gray-500 ml-2">— Get Started</span>
+            </div>
             <span className="text-sm text-gray-600">Step {onboarding.step} of 5</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${(onboarding.step / 5) * 100}%` }} />
+            <div className="h-2 rounded-full transition-all" style={{ width: `${(onboarding.step / 5) * 100}%`, backgroundColor: '#FFCB00' }} />
           </div>
         </div>
         {onboarding.step === 1 && <OnboardingStep1 data={onboarding} onUpdate={updateStep} />}
@@ -802,7 +810,9 @@ const OnboardingFlow = ({ user, data, onComplete }: any) => {
         {onboarding.step === 5 && <OnboardingStep5 data={onboarding} onUpdate={updateStep} />}
         <div className="flex gap-4 mt-8">
           {onboarding.step > 1 && <button onClick={prevStep} className="px-6 py-3 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-50">Back</button>}
-          <button onClick={nextStep} disabled={saving} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
+          <button onClick={nextStep} disabled={saving}
+            className="flex-1 text-black py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2 hover:opacity-90"
+            style={{ backgroundColor: '#FFCB00' }}>
             {saving && <Loader className="animate-spin" size={18} />}
             {onboarding.step === 5 ? 'Complete Setup' : 'Continue'}
           </button>
@@ -824,7 +834,8 @@ const OnboardingStep1 = ({ data, onUpdate }: any) => (
       <label className="block text-sm font-medium mb-2">Training Background</label>
       <div className="grid grid-cols-3 gap-3">
         {['beginner', 'intermediate', 'advanced'].map((level) => (
-          <button key={level} onClick={() => onUpdate({ trainingBackground: level })} className={`p-4 rounded-lg border-2 font-semibold capitalize ${data.trainingBackground === level ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200'}`}>{level}</button>
+          <button key={level} onClick={() => onUpdate({ trainingBackground: level })}
+            className={`p-4 rounded-lg border-2 font-semibold capitalize ${data.trainingBackground === level ? 'border-black bg-black text-white' : 'border-gray-200'}`}>{level}</button>
         ))}
       </div>
     </div>
@@ -836,7 +847,10 @@ const OnboardingStep2 = ({ data, onUpdate }: any) => (
     <h3 className="text-xl font-bold mb-2">What's your goal?</h3>
     <div className="space-y-3">
       {[{ value: 'finish_strong', label: 'First 70.3 – Finish Strong' }, { value: 'sub5', label: 'Sub 5:00' }, { value: 'sub4_30', label: 'Sub 4:30' }, { value: 'hybrid', label: 'Hybrid Strength + Endurance' }].map((goal) => (
-        <button key={goal.value} onClick={() => onUpdate({ goalType: goal.value })} className={`w-full p-4 rounded-lg border-2 text-left ${data.goalType === goal.value ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}`}><div className="font-semibold">{goal.label}</div></button>
+        <button key={goal.value} onClick={() => onUpdate({ goalType: goal.value })}
+          className={`w-full p-4 rounded-lg border-2 text-left ${data.goalType === goal.value ? 'border-black bg-black text-white' : 'border-gray-200'}`}>
+          <div className="font-semibold">{goal.label}</div>
+        </button>
       ))}
     </div>
   </div>
@@ -850,7 +864,10 @@ const OnboardingStep3 = ({ data, onUpdate }: any) => (
       <label className="block text-sm font-medium mb-2">Priority</label>
       <div className="grid grid-cols-3 gap-3">
         {[{ value: 'performance', label: 'Performance' }, { value: 'balanced', label: 'Balanced' }, { value: 'physique', label: 'Physique' }].map((p) => (
-          <button key={p.value} onClick={() => onUpdate({ priority: p.value })} className={`p-4 rounded-lg border-2 ${data.priority === p.value ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}`}><div className="font-semibold text-sm">{p.label}</div></button>
+          <button key={p.value} onClick={() => onUpdate({ priority: p.value })}
+            className={`p-4 rounded-lg border-2 ${data.priority === p.value ? 'border-black bg-black text-white' : 'border-gray-200'}`}>
+            <div className="font-semibold text-sm">{p.label}</div>
+          </button>
         ))}
       </div>
     </div>
@@ -896,23 +913,28 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate, userPrefs, 
 
   return (
     <>
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg">
+      {/* Huel black header */}
+      <div className="bg-black text-white p-4 shadow-lg">
         <div className="flex items-center justify-between">
-          <div><h1 className="text-2xl font-bold">Pro Fit Agent</h1></div>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-black tracking-tight text-white">Huel</span>
+            <span className="text-2xl font-black tracking-tight" style={{ color: '#FFCB00' }}>Fit</span>
+          </div>
           <button onClick={() => setShowMenu(!showMenu)}
-            className="w-10 h-10 rounded-full flex items-center justify-center font-bold hover:ring-2 hover:ring-white/50 text-sm transition-all"
-            style={{ backgroundColor: userPrefs.avatar_color || '#6366f1' }}>
+            className="w-10 h-10 rounded-full flex items-center justify-center font-bold hover:ring-2 text-sm transition-all text-black"
+            style={{ backgroundColor: userPrefs.avatar_emoji ? 'transparent' : (userPrefs.avatar_color || '#FFCB00'), ringColor: '#FFCB00' }}>
             {userPrefs.avatar_emoji ? <span className="text-xl">{userPrefs.avatar_emoji}</span> : initials}
           </button>
         </div>
       </div>
+
       {showMenu && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setShowMenu(false)}>
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50" onClick={() => setShowMenu(false)}>
           <div className="absolute right-4 top-16 bg-white rounded-xl shadow-2xl w-72 py-2 overflow-hidden" onClick={(e: any) => e.stopPropagation()}>
             {/* User Info */}
             <div className="px-4 py-3 border-b flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold"
-                style={{ backgroundColor: userPrefs.avatar_color || '#6366f1', color: 'white' }}>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold text-black"
+                style={{ backgroundColor: userPrefs.avatar_color || '#FFCB00' }}>
                 {userPrefs.avatar_emoji || initials}
               </div>
               <div className="flex-1 min-w-0">
@@ -921,9 +943,8 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate, userPrefs, 
               </div>
             </div>
 
-            {/* Emoji Picker Toggle */}
             <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm">
-              <Palette size={18} className="text-purple-500" /><span>Change Avatar</span>
+              <Palette size={18} className="text-gray-500" /><span>Change Avatar</span>
               <ChevronDown size={14} className={`ml-auto text-gray-400 transition-transform ${showEmojiPicker ? 'rotate-180' : ''}`} />
             </button>
 
@@ -932,7 +953,7 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate, userPrefs, 
                 <div className="grid grid-cols-8 gap-1">
                   {['🏃','🚴','🏊','💪','🧘','⚡','🔥','🌟','🎯','🏆','🥇','🦈','🐎','🦅','🐺','🦁','😎','🤘','✌️','🙌','💎','🌊','🏔️','🎪'].map(emoji => (
                     <button key={emoji} onClick={() => handleEmojiSelect(emoji)}
-                      className={`text-xl p-1.5 rounded-lg hover:bg-purple-100 transition-colors ${userPrefs.avatar_emoji === emoji ? 'bg-purple-200 ring-2 ring-purple-400' : ''}`}>
+                      className={`text-xl p-1.5 rounded-lg hover:bg-yellow-100 transition-colors ${userPrefs.avatar_emoji === emoji ? 'bg-yellow-200 ring-2 ring-yellow-400' : ''}`}>
                       {emoji}
                     </button>
                   ))}
@@ -944,7 +965,7 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate, userPrefs, 
               <Settings size={18} className="text-gray-500" /><span>Profile Settings</span>
             </button>
             <button onClick={() => { setShowWhatsApp(true); setShowMenu(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm">
-              <MessageCircle size={18} className="text-blue-500" /><span>Connect Telegram</span>
+              <MessageCircle size={18} className="text-gray-500" /><span>Connect Telegram</span>
             </button>
             <div className="border-t my-1"></div>
             <button onClick={onLogout} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-sm text-red-600">
@@ -954,7 +975,6 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate, userPrefs, 
         </div>
       )}
 
-      {/* Telegram Connect Modal */}
       {showWhatsApp && <WhatsAppConnectModal user={user} onClose={() => setShowWhatsApp(false)} />}
     </>
   );
@@ -989,46 +1009,43 @@ const WhatsAppConnectModal = ({ user, onClose }: { user: AppUser; onClose: () =>
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={(e: any) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold flex items-center gap-2"><MessageCircle size={22} className="text-blue-500" /> Connect Telegram</h2>
+          <h2 className="text-lg font-bold flex items-center gap-2"><MessageCircle size={22} className="text-gray-700" /> Connect Telegram</h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X size={20} /></button>
         </div>
 
         {!code ? (
           <div className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Smartphone size={28} className="text-blue-600" />
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#FFCB00' }}>
+              <Smartphone size={28} className="text-black" />
             </div>
             <p className="text-sm text-gray-600 mb-4">Connect your Telegram to log sleep, fatigue, weight and check your training plan via messages.</p>
             <button onClick={generateCode} disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
+              className="w-full bg-black text-white py-3 rounded-xl font-semibold hover:bg-gray-900 disabled:opacity-50 flex items-center justify-center gap-2">
               {loading ? <Loader className="animate-spin" size={18} /> : <MessageCircle size={18} />}
               {loading ? 'Generating...' : 'Generate Pairing Code'}
             </button>
           </div>
         ) : (
           <div className="text-center">
-            <div className="bg-blue-50 rounded-xl p-4 mb-4">
-              <p className="text-xs text-blue-600 font-semibold mb-2">Step 1: Open Telegram and search for</p>
-              <a href="https://t.me/ProFitAgent_bot" target="_blank" rel="noopener" className="text-blue-700 font-bold text-lg hover:underline">@ProFitAgent_bot</a>
+            <div className="bg-gray-50 rounded-xl p-4 mb-4">
+              <p className="text-xs text-gray-600 font-semibold mb-2">Step 1: Open Telegram and search for</p>
+              <a href="https://t.me/ProFitAgent_bot" target="_blank" rel="noopener" className="text-black font-bold text-lg hover:underline">@ProFitAgent_bot</a>
             </div>
-
             <div className="bg-gray-50 rounded-xl p-4 mb-4">
               <p className="text-xs text-gray-500 font-semibold mb-2">Step 2: Send this exact message to the bot</p>
               <div className="flex items-center justify-center gap-2 mb-1">
                 <code className="text-2xl font-mono font-bold tracking-wide text-gray-900 bg-white px-4 py-2 rounded-lg border">/start {code}</code>
               </div>
-              <button onClick={copyCommand} className="mt-2 flex items-center gap-1 mx-auto text-sm text-blue-600 hover:underline">
+              <button onClick={copyCommand} className="mt-2 flex items-center gap-1 mx-auto text-sm text-gray-700 hover:underline">
                 {copied ? <><Check size={14} className="text-green-500" /> Copied!</> : <><Copy size={14} /> Copy command</>}
               </button>
             </div>
-
             <p className="text-xs text-gray-400 mb-4">
               Code expires in 10 minutes{expiresAt ? ` (${new Date(expiresAt).toLocaleTimeString()})` : ''}
             </p>
-
             <div className="bg-gray-50 rounded-xl p-3 text-left text-xs text-gray-600 space-y-1">
               <p className="font-semibold mb-1">After pairing, you can send:</p>
               <p><code className="bg-gray-200 px-1 rounded">/sleep 7.5</code> — Log sleep hours</p>
@@ -1037,7 +1054,7 @@ const WhatsAppConnectModal = ({ user, onClose }: { user: AppUser; onClose: () =>
               <p><code className="bg-gray-200 px-1 rounded">/today</code> — Today's training plan</p>
               <p><code className="bg-gray-200 px-1 rounded">/summary</code> — Weekly stats</p>
             </div>
-            <button onClick={generateCode} className="text-sm text-blue-600 hover:underline mt-3">Generate new code</button>
+            <button onClick={generateCode} className="text-sm text-gray-600 hover:underline mt-3">Generate new code</button>
           </div>
         )}
       </div>
@@ -1058,25 +1075,26 @@ const PhaseTimeline = ({ onboarding, plan }: { onboarding: OnboardingData; plan:
   const totalWeeks = Math.floor(totalDays / 7);
 
   const phases = [
-    { name: 'Base', color: 'bg-blue-500', weeks: Math.max(1, totalWeeks - 12) },
-    { name: 'Build', color: 'bg-orange-500', weeks: Math.min(9, Math.max(1, totalWeeks > 12 ? 9 : totalWeeks - 3)) },
-    { name: 'Peak', color: 'bg-red-500', weeks: Math.min(2, Math.max(1, totalWeeks > 3 ? 2 : 1)) },
-    { name: 'Taper', color: 'bg-green-500', weeks: 1 },
-    { name: 'Race', color: 'bg-purple-600', weeks: 0 },
+    { name: 'Base', color: 'bg-gray-700', weeks: Math.max(1, totalWeeks - 12) },
+    { name: 'Build', color: 'bg-gray-600', weeks: Math.min(9, Math.max(1, totalWeeks > 12 ? 9 : totalWeeks - 3)) },
+    { name: 'Peak', color: 'bg-gray-800', weeks: Math.min(2, Math.max(1, totalWeeks > 3 ? 2 : 1)) },
+    { name: 'Taper', color: 'bg-gray-500', weeks: 1 },
+    { name: 'Race', color: 'bg-black', weeks: 0 },
   ];
 
   const currentPhase = plan?.phase || 'Base';
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
-      <h3 className="font-bold text-sm text-gray-700 mb-3 flex items-center gap-2"><Flag size={16} className="text-purple-500" /> Training Phases</h3>
+      <h3 className="font-bold text-sm text-gray-700 mb-3 flex items-center gap-2"><Flag size={16} style={{ color: '#FFCB00' }} /> Training Phases</h3>
       <div className="flex items-center gap-1 mb-2">
         {phases.map((phase, i) => {
           const isCurrent = phase.name === currentPhase;
           const isPast = phases.findIndex(p => p.name === currentPhase) > i;
           return (
             <React.Fragment key={phase.name}>
-              <div className={`flex-1 h-2 rounded-full transition-all ${isCurrent ? phase.color : isPast ? phase.color + ' opacity-40' : 'bg-gray-200'}`} />
+              <div className={`flex-1 h-2 rounded-full transition-all ${isCurrent ? '' : isPast ? phase.color + ' opacity-40' : 'bg-gray-200'}`}
+                style={isCurrent ? { backgroundColor: '#FFCB00' } : {}} />
               {i < phases.length - 1 && <div className="w-1" />}
             </React.Fragment>
           );
@@ -1086,7 +1104,7 @@ const PhaseTimeline = ({ onboarding, plan }: { onboarding: OnboardingData; plan:
         {phases.map(phase => {
           const isCurrent = phase.name === currentPhase;
           return (
-            <span key={phase.name} className={`${isCurrent ? 'text-blue-600 font-bold' : ''}`}>
+            <span key={phase.name} className={`${isCurrent ? 'font-bold' : ''}`} style={isCurrent ? { color: '#FFCB00' } : {}}>
               {phase.name} {isCurrent && '📍'}
             </span>
           );
@@ -1114,8 +1132,8 @@ const MilestonesCard = ({ milestones }: { milestones: Milestone[] }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-sm text-gray-700 flex items-center gap-2"><Award size={16} className="text-yellow-500" /> Milestones</h3>
-        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-semibold">{achieved}/{milestones.length}</span>
+        <h3 className="font-bold text-sm text-gray-700 flex items-center gap-2"><Award size={16} style={{ color: '#FFCB00' }} /> Milestones</h3>
+        <span className="text-xs px-2 py-0.5 rounded-full font-semibold text-black" style={{ backgroundColor: '#FFCB00' }}>{achieved}/{milestones.length}</span>
       </div>
       <div className="space-y-2">
         {upcoming.map(m => {
@@ -1126,7 +1144,7 @@ const MilestonesCard = ({ milestones }: { milestones: Milestone[] }) => {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-gray-800 truncate">{m.title}</div>
                 {daysUntil !== null && <div className="text-xs text-gray-500">{daysUntil <= 0 ? 'Today!' : `In ${daysUntil} days`}{m.date ? ` • ${m.date}` : ''}</div>}
-                {!m.date && <div className="text-xs text-purple-500">Achievement goal</div>}
+                {!m.date && <div className="text-xs text-gray-500">Achievement goal</div>}
               </div>
               <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
                 <div className="w-3 h-3 rounded-full bg-gray-400" />
@@ -1161,31 +1179,29 @@ const HomeScreen = ({ user, onboarding, plan, projection, realism, plannedSessio
     <div className="p-4 space-y-4">
       {onboarding.raceLocation ? (
         <div className="relative rounded-lg shadow overflow-hidden" style={{ minHeight: 180 }}>
-          <div className="absolute inset-0 bg-cover bg-center" style={{
-            backgroundImage: `url(${getRaceImageUrl(onboarding.raceLocation)})`,
-          }} />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/40" />
+          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${getRaceImageUrl(onboarding.raceLocation)})` }} />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/50" />
           <div className="relative z-10 p-6 text-white">
-            <div className="flex items-center justify-between mb-3"><h2 className="font-bold text-xl">Race Goal Progress</h2><Target size={28} /></div>
+            <div className="flex items-center justify-between mb-3"><h2 className="font-bold text-xl">Race Goal Progress</h2><Target size={28} style={{ color: '#FFCB00' }} /></div>
             <div className="text-4xl font-bold mb-1">{weeksToRace} weeks</div>
             <div className="text-sm opacity-90 mb-1">Ironman 70.3 • {formatRaceDate(onboarding.raceDate)}</div>
             <div className="text-xs opacity-70 mb-3">📍 {onboarding.raceLocation}</div>
-            {projection && <div className="bg-white bg-opacity-20 rounded px-3 py-2 text-sm mb-2">📊 Projected: {projection.time}</div>}
+            {projection && <div className="bg-white bg-opacity-10 rounded px-3 py-2 text-sm mb-2">📊 Projected: {projection.time}</div>}
             <div className="flex gap-2">
-              <div className="bg-white bg-opacity-20 rounded px-3 py-1 text-xs">{plan?.phase || 'Base'} Phase</div>
-              <div className="bg-white bg-opacity-20 rounded px-3 py-1 text-xs">📈 {compliance}% Compliance</div>
+              <div className="bg-white bg-opacity-10 rounded px-3 py-1 text-xs">{plan?.phase || 'Base'} Phase</div>
+              <div className="bg-white bg-opacity-10 rounded px-3 py-1 text-xs">📈 {compliance}% Compliance</div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-3"><h2 className="font-bold text-xl">Race Goal Progress</h2><Target size={28} /></div>
+        <div className="text-white rounded-lg shadow p-6 bg-black">
+          <div className="flex items-center justify-between mb-3"><h2 className="font-bold text-xl">Race Goal Progress</h2><Target size={28} style={{ color: '#FFCB00' }} /></div>
           <div className="text-4xl font-bold mb-1">{weeksToRace} weeks</div>
           <div className="text-sm opacity-90 mb-3">Ironman 70.3 • {formatRaceDate(onboarding.raceDate)}</div>
-          {projection && <div className="bg-white bg-opacity-20 rounded px-3 py-2 text-sm mb-2">📊 Projected: {projection.time}</div>}
+          {projection && <div className="bg-white bg-opacity-10 rounded px-3 py-2 text-sm mb-2">📊 Projected: {projection.time}</div>}
           <div className="flex gap-2">
-            <div className="bg-white bg-opacity-20 rounded px-3 py-1 text-xs">{plan?.phase || 'Base'} Phase</div>
-            <div className="bg-white bg-opacity-20 rounded px-3 py-1 text-xs">📈 {compliance}% Compliance</div>
+            <div className="bg-white bg-opacity-10 rounded px-3 py-1 text-xs">{plan?.phase || 'Base'} Phase</div>
+            <div className="bg-white bg-opacity-10 rounded px-3 py-1 text-xs">📈 {compliance}% Compliance</div>
           </div>
         </div>
       )}
@@ -1197,14 +1213,14 @@ const HomeScreen = ({ user, onboarding, plan, projection, realism, plannedSessio
           <div className="bg-blue-50 p-3 rounded"><div className="text-xs text-gray-600">Swim</div><div className="text-xl font-bold text-blue-600">{actualSwim}m</div></div>
           <div className="bg-green-50 p-3 rounded"><div className="text-xs text-gray-600">Bike</div><div className="text-xl font-bold text-green-600">{actualBike.toFixed(1)}km</div></div>
           <div className="bg-orange-50 p-3 rounded"><div className="text-xs text-gray-600">Run</div><div className="text-xl font-bold text-orange-600">{actualRun.toFixed(1)}km</div></div>
-          <div className="bg-purple-50 p-3 rounded"><div className="text-xs text-gray-600">Compliance</div><div className="text-xl font-bold text-purple-600">{compliance}%</div><div className="text-xs text-gray-500">{completed}/{total}</div></div>
+          <div className="p-3 rounded" style={{ backgroundColor: '#FFFBCC' }}><div className="text-xs text-gray-600">Compliance</div><div className="text-xl font-bold" style={{ color: '#B8920A' }}>{compliance}%</div><div className="text-xs text-gray-500">{completed}/{total}</div></div>
         </div>
       </div>
       {todaySessions.length > 0 && (
         <div className="bg-white rounded-lg shadow p-4">
           <h3 className="font-bold text-lg mb-3">Today's Plan</h3>
           {todaySessions.map((s: PlannedSession) => (
-            <div key={s.id} className="border-l-4 border-blue-500 pl-3 py-2 mb-2">
+            <div key={s.id} className="border-l-4 border-black pl-3 py-2 mb-2">
               <div className="flex justify-between items-start">
                 <div><div className="font-semibold">{s.sport} - {s.type}</div><div className="text-sm text-gray-600">{s.description}</div><div className="text-xs text-gray-500">{s.duration}min • {s.intensity}</div></div>
                 {s.status === 'completed' ? <Check className="text-green-600" size={20} /> : <div className="text-xs bg-gray-100 px-2 py-1 rounded">Planned</div>}
@@ -1217,7 +1233,7 @@ const HomeScreen = ({ user, onboarding, plan, projection, realism, plannedSessio
         <div className="bg-white rounded-lg shadow p-4">
           <h3 className="font-bold text-lg mb-3">Recent Activity</h3>
           {trainingSessions.slice(0, 3).map((t: TrainingSession) => (
-            <div key={t.id} className="border-l-4 border-green-500 pl-3 py-2 text-sm mb-2">
+            <div key={t.id} className="border-l-4 border-gray-800 pl-3 py-2 text-sm mb-2">
               <div className="flex justify-between"><span className="font-semibold">{t.sport} - {t.type}</span><span className="text-xs text-gray-500">{t.date}</span></div>
               <div className="text-gray-600">{t.distance}{t.sport === 'Swim' ? 'm' : 'km'} • {t.duration}min • RPE {t.rpe}</div>
             </div>
@@ -1229,7 +1245,7 @@ const HomeScreen = ({ user, onboarding, plan, projection, realism, plannedSessio
 };
 
 // ============================================================================
-// CALENDAR SCREEN — Dark/Light theme, 4-week grid
+// CALENDAR SCREEN
 // ============================================================================
 
 const CalendarScreen = ({ plannedSessions, milestones }: any) => {
@@ -1268,8 +1284,6 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
     return { type: 'planned', sports, sessions };
   };
 
-  const sportDotColor: Record<string, string> = { Swim: 'bg-cyan-400', Bike: 'bg-emerald-400', Run: 'bg-rose-400', Strength: 'bg-violet-400', 'Gym - Push': 'bg-red-400', 'Gym - Pull': 'bg-blue-400', 'Gym - Legs': 'bg-green-400' };
-
   const selectedSessions = plannedSessions.filter((s: PlannedSession) => s.date === selectedDate);
   const selectedDayName = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -1294,10 +1308,10 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
         <h2 className={`font-bold text-lg ${t.statText}`}>Training Calendar</h2>
         <button onClick={() => setIsDark(!isDark)} className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${isDark ? 'bg-gray-800' : 'bg-gray-200'} transition-colors duration-300`}>
           <Sun size={14} className={`${isDark ? 'text-gray-500' : 'text-yellow-500'} transition-colors`} />
-          <div className={`w-10 h-5 rounded-full relative ${isDark ? 'bg-blue-600' : 'bg-gray-300'} transition-colors duration-300`}>
+          <div className={`w-10 h-5 rounded-full relative transition-colors duration-300`} style={{ backgroundColor: isDark ? '#FFCB00' : '#d1d5db' }}>
             <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-300 ${isDark ? 'left-5' : 'left-0.5'}`} />
           </div>
-          <Moon size={14} className={`${isDark ? 'text-blue-400' : 'text-gray-400'} transition-colors`} />
+          <Moon size={14} className={`${isDark ? 'text-yellow-400' : 'text-gray-400'} transition-colors`} />
         </button>
       </div>
 
@@ -1306,7 +1320,7 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
           <div className={`${t.statCard} rounded-lg p-3 text-center transition-colors duration-300`}><div className="text-xl font-bold text-emerald-400">{totalCompleted}</div><div className={`text-xs ${t.legendText}`}>Done</div></div>
           <div className={`${t.statCard} rounded-lg p-3 text-center transition-colors duration-300`}><div className="text-xl font-bold text-rose-400">{totalSkipped}</div><div className={`text-xs ${t.legendText}`}>Skipped</div></div>
           <div className={`${t.statCard} rounded-lg p-3 text-center transition-colors duration-300`}><div className="text-xl font-bold text-cyan-400">{totalPlanned > 0 ? Math.round((totalCompleted / totalPlanned) * 100) : 0}%</div><div className={`text-xs ${t.legendText}`}>Rate</div></div>
-          <div className={`${t.statCard} rounded-lg p-3 text-center transition-colors duration-300`}><div className="text-xl font-bold text-yellow-400">🔥 {streakDays}</div><div className={`text-xs ${t.legendText}`}>Streak</div></div>
+          <div className={`${t.statCard} rounded-lg p-3 text-center transition-colors duration-300`}><div className="text-xl font-bold" style={{ color: '#FFCB00' }}>🔥 {streakDays}</div><div className={`text-xs ${t.legendText}`}>Streak</div></div>
         </div>
       </div>
 
@@ -1337,20 +1351,19 @@ const CalendarScreen = ({ plannedSessions, milestones }: any) => {
                 const { type, sports } = getDayStatus(dateStr);
                 const hasMilestone = milestones?.some((m: Milestone) => m.date === dateStr);
                 const cellClass = type === 'completed' ? t.cellCompleted : type === 'partial' ? t.cellPartial : type === 'skipped' ? t.cellSkipped : type === 'cancelled' ? t.cellCancelled : type === 'planned' && isFuture ? t.cellPlannedFuture : type === 'planned' ? t.cellPlanned : t.cellRest;
-                const textClass = isToday ? (isDark ? 'text-white' : 'text-blue-600 font-black') : type === 'completed' ? t.dayCompleted : type === 'skipped' ? t.daySkipped : type === 'cancelled' ? (isDark ? 'text-amber-400' : 'text-amber-600') : isFuture ? t.dayFuture : t.dayDefault;
+                const textClass = isToday ? (isDark ? 'text-white' : 'text-black font-black') : type === 'completed' ? t.dayCompleted : type === 'skipped' ? t.daySkipped : type === 'cancelled' ? (isDark ? 'text-amber-400' : 'text-amber-600') : isFuture ? t.dayFuture : t.dayDefault;
 
                 return (
                   <button key={dateStr} onClick={() => setSelectedDate(dateStr)}
-                    className={`relative w-full rounded-lg flex flex-col items-center justify-center py-1.5 transition-all duration-200 ${cellClass} ${isSelected ? 'ring-2 ring-blue-400 scale-105 z-10' : ''} ${isToday && !isSelected ? (isDark ? 'ring-2 ring-white ring-opacity-40' : 'ring-2 ring-blue-500') : ''}`}>
+                    className={`relative w-full rounded-lg flex flex-col items-center justify-center py-1.5 transition-all duration-200 ${cellClass} ${isSelected ? 'ring-2 scale-105 z-10' : ''} ${isToday && !isSelected ? `ring-2` : ''}`}
+                    style={isSelected ? { '--tw-ring-color': '#FFCB00' } as any : isToday && !isSelected ? { '--tw-ring-color': '#000' } as any : {}}>
                     <span className={`text-[10px] font-bold ${textClass}`}>{dayNum}</span>
                     {sports && sports.length > 0 && (
                       <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center">
                         {sports.slice(0, 3).map((sport: string, i: number) => {
                           const colorClass = type === 'skipped' ? 'text-gray-400' : type === 'cancelled' ? 'text-amber-500 bg-amber-100' : sport === 'Swim' ? 'text-cyan-600 bg-cyan-100' : sport === 'Bike' ? 'text-emerald-600 bg-emerald-100' : sport === 'Run' ? 'text-rose-600 bg-rose-100' : sport === 'Gym - Push' ? 'text-red-600 bg-red-100' : sport === 'Gym - Pull' ? 'text-blue-600 bg-blue-100' : sport === 'Gym - Legs' ? 'text-green-600 bg-green-100' : 'text-violet-600 bg-violet-100';
                           return (
-                            <span key={i} className={`text-[6px] font-bold px-0.5 rounded leading-tight ${colorClass}`}>
-                              {sport}
-                            </span>
+                            <span key={i} className={`text-[6px] font-bold px-0.5 rounded leading-tight ${colorClass}`}>{sport}</span>
                           );
                         })}
                       </div>
@@ -1422,8 +1435,11 @@ const LogScreen = ({ onLogTraining, onLogBody, setActiveScreen }: any) => {
   return (
     <div className="p-4 space-y-4">
       <div className="flex gap-2">
-        <button onClick={() => setLogType('training')} className={`flex-1 py-2 rounded font-semibold ${logType === 'training' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Training</button>
-        <button onClick={() => setLogType('body')} className={`flex-1 py-2 rounded font-semibold ${logType === 'body' ? 'bg-orange-600 text-white' : 'bg-gray-200'}`}>Body Metrics</button>
+        <button onClick={() => setLogType('training')}
+          className={`flex-1 py-2 rounded font-semibold ${logType === 'training' ? 'bg-black text-white' : 'bg-gray-200'}`}>Training</button>
+        <button onClick={() => setLogType('body')}
+          className={`flex-1 py-2 rounded font-semibold ${logType === 'body' ? 'text-black' : 'bg-gray-200'}`}
+          style={logType === 'body' ? { backgroundColor: '#FFCB00' } : {}}>Body Metrics</button>
       </div>
       {logType === 'training' && (
         <div className="bg-white rounded-lg shadow p-4 space-y-3">
@@ -1437,7 +1453,10 @@ const LogScreen = ({ onLogTraining, onLogBody, setActiveScreen }: any) => {
           </div>
           <div><label className="block text-sm font-medium mb-1">RPE (1-10)</label><input type="number" min="1" max="10" value={trainingForm.rpe} onChange={(e) => setTrainingForm({ ...trainingForm, rpe: +e.target.value })} className="w-full p-3 border rounded-lg" /></div>
           <div><label className="block text-sm font-medium mb-1">Notes</label><textarea value={trainingForm.notes} onChange={(e) => setTrainingForm({ ...trainingForm, notes: e.target.value })} className="w-full p-3 border rounded-lg" rows={2} /></div>
-          <button onClick={handleSaveTraining} disabled={saving} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2">{saving ? <Loader className="animate-spin" size={18} /> : <Check size={18} />} Log Training</button>
+          <button onClick={handleSaveTraining} disabled={saving}
+            className="w-full bg-black text-white py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+            {saving ? <Loader className="animate-spin" size={18} /> : <Check size={18} />} Log Training
+          </button>
         </div>
       )}
       {logType === 'body' && (
@@ -1450,7 +1469,11 @@ const LogScreen = ({ onLogTraining, onLogBody, setActiveScreen }: any) => {
           </div>
           <div><label className="block text-sm font-medium mb-1">Fatigue (1-10)</label><input type="number" min="1" max="10" value={bodyForm.fatigue || ''} onChange={(e) => setBodyForm({ ...bodyForm, fatigue: e.target.value ? +e.target.value : null })} className="w-full p-3 border rounded-lg" /></div>
           <div><label className="block text-sm font-medium mb-1">Notes</label><textarea value={bodyForm.notes} onChange={(e) => setBodyForm({ ...bodyForm, notes: e.target.value })} className="w-full p-3 border rounded-lg" rows={2} /></div>
-          <button onClick={handleSaveBody} disabled={saving} className="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2">{saving ? <Loader className="animate-spin" size={18} /> : <Check size={18} />} Log Metrics</button>
+          <button onClick={handleSaveBody} disabled={saving}
+            className="w-full text-black py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ backgroundColor: '#FFCB00' }}>
+            {saving ? <Loader className="animate-spin" size={18} /> : <Check size={18} />} Log Metrics
+          </button>
         </div>
       )}
     </div>
@@ -1469,57 +1492,31 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
     setRefreshing(true);
     try {
       const today = new Date().toISOString().split('T')[0];
-      
-      // 1. Get all existing sessions
-      const { data: existing, error: fetchErr } = await supabase.from('planned_sessions').select('*')
-        .eq('user_id', user.id);
+      const { data: existing, error: fetchErr } = await supabase.from('planned_sessions').select('*').eq('user_id', user.id);
       if (fetchErr) { console.error('Fetch error:', fetchErr); setRefreshing(false); return; }
-      
-      // 2. Keep past sessions + completed/skipped future sessions
-      const toDeleteIds = (existing || []).filter((s: any) => 
-        s.date >= today && s.status === 'planned'
-      ).map((s: any) => s.id);
-      
-      // 3. Delete only future planned (not completed/skipped)
+      const toDeleteIds = (existing || []).filter((s: any) => s.date >= today && s.status === 'planned').map((s: any) => s.id);
       if (toDeleteIds.length > 0) {
-        // Delete in batches of 50 to avoid query size limits
         for (let i = 0; i < toDeleteIds.length; i += 50) {
           const batch = toDeleteIds.slice(i, i + 50);
           const { error: delErr } = await supabase.from('planned_sessions').delete().in('id', batch);
           if (delErr) console.error('Delete batch error:', delErr);
         }
       }
-      
-      // 4. Generate new sessions
       const newSessions = PlanningEngine.generate30DaySessions(user.id);
-      
-      // 5. Filter out dates that already have a kept session for the same sport
-      const { data: keptData } = await supabase.from('planned_sessions').select('date, sport')
-        .eq('user_id', user.id).gte('date', today);
+      const { data: keptData } = await supabase.from('planned_sessions').select('date, sport').eq('user_id', user.id).gte('date', today);
       const keptKeys = new Set((keptData || []).map((s: any) => `${s.date}-${s.sport}`));
       const toInsert = newSessions.filter((s: any) => !keptKeys.has(`${s.date}-${s.sport}`));
-      
-      // 6. Insert one by one to handle any constraint errors gracefully
       let inserted = 0;
       for (const session of toInsert) {
         const { error: insErr } = await supabase.from('planned_sessions').insert(session);
-        if (insErr) {
-          console.error('Insert error for', session.sport, session.date, ':', insErr.message);
-        } else {
-          inserted++;
-        }
+        if (!insErr) inserted++;
       }
-      console.log(`Refresh: deleted ${toDeleteIds.length}, inserted ${inserted}/${toInsert.length}`);
-      
-      // 7. Reload everything
-      const { data: all } = await supabase.from('planned_sessions').select('*')
-        .eq('user_id', user.id).order('date', { ascending: true });
+      const { data: all } = await supabase.from('planned_sessions').select('*').eq('user_id', user.id).order('date', { ascending: true });
       if (all) setPlannedSessions(all);
-    } catch (err) {
-      console.error('Refresh plan error:', err);
-    }
+    } catch (err) { console.error('Refresh plan error:', err); }
     setRefreshing(false);
   };
+
   const getWeekDates = (offset: number) => {
     const now = new Date(); const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay() + (offset * 7));
@@ -1540,7 +1537,7 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
   const total = activeSessions.length;
   const totalHours = (activeSessions.reduce((sum: number, s: PlannedSession) => sum + s.duration, 0) / 60).toFixed(1);
 
-  const sportColor: Record<string, string> = { Swim: 'border-blue-500 bg-blue-50', Bike: 'border-green-500 bg-green-50', Run: 'border-orange-500 bg-orange-50', Strength: 'border-purple-500 bg-purple-50', 'Gym - Push': 'border-red-500 bg-red-50', 'Gym - Pull': 'border-blue-500 bg-blue-50', 'Gym - Legs': 'border-green-500 bg-green-50' };
+  const sportColor: Record<string, string> = { Swim: 'border-blue-500 bg-blue-50', Bike: 'border-green-500 bg-green-50', Run: 'border-orange-500 bg-orange-50', Strength: 'border-gray-700 bg-gray-50', 'Gym - Push': 'border-red-500 bg-red-50', 'Gym - Pull': 'border-blue-500 bg-blue-50', 'Gym - Legs': 'border-green-500 bg-green-50' };
   const sportEmoji: Record<string, string> = { Swim: '🏊', Bike: '🚴', Run: '🏃', Strength: '💪', 'Gym - Push': '🏋️', 'Gym - Pull': '🏋️', 'Gym - Legs': '🦵' };
   const intensityColor: Record<string, string> = { Easy: 'bg-green-100 text-green-700', Moderate: 'bg-yellow-100 text-yellow-700', Hard: 'bg-red-100 text-red-700' };
 
@@ -1555,14 +1552,22 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
 
   return (
     <div className="p-4 space-y-4">
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow p-5">
-        <div className="flex items-center justify-between mb-2"><h2 className="font-bold text-xl">Training Plan</h2><button onClick={refreshPlan} disabled={refreshing} className="px-3 py-1 bg-white bg-opacity-20 rounded-lg text-xs font-bold hover:bg-opacity-30">{refreshing ? '⏳' : '🔄'} Refresh</button></div>
-        <div className="text-sm opacity-90 mb-3">{plan?.phase || 'Base'} Phase • Race: {formatRaceDate(onboarding.raceDate)}</div>
+      {/* Header card — Huel black */}
+      <div className="bg-black text-white rounded-lg shadow p-5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-bold text-xl">Training Plan</h2>
+          <button onClick={refreshPlan} disabled={refreshing}
+            className="px-3 py-1 rounded-lg text-xs font-bold hover:opacity-80 text-black"
+            style={{ backgroundColor: '#FFCB00' }}>
+            {refreshing ? '⏳' : '🔄'} Refresh
+          </button>
+        </div>
+        <div className="text-sm opacity-70 mb-3">{plan?.phase || 'Base'} Phase • Race: {formatRaceDate(onboarding.raceDate)}</div>
         <div className="grid grid-cols-4 gap-2 text-center">
-          <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_swim_sessions || 3}</div><div className="text-xs opacity-80">Swims/wk</div></div>
-          <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_bike_km || 60}</div><div className="text-xs opacity-80">Bike km/wk</div></div>
-          <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_run_km || 25}</div><div className="text-xs opacity-80">Run km/wk</div></div>
-          <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_strength_sessions || 2}</div><div className="text-xs opacity-80">Gym/wk</div></div>
+          <div className="bg-white bg-opacity-10 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_swim_sessions || 3}</div><div className="text-xs opacity-70">Swims/wk</div></div>
+          <div className="bg-white bg-opacity-10 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_bike_km || 60}</div><div className="text-xs opacity-70">Bike km/wk</div></div>
+          <div className="bg-white bg-opacity-10 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_run_km || 25}</div><div className="text-xs opacity-70">Run km/wk</div></div>
+          <div className="bg-white bg-opacity-10 rounded p-2"><div className="text-lg font-bold">{plan?.weekly_strength_sessions || 2}</div><div className="text-xs opacity-70">Gym/wk</div></div>
         </div>
       </div>
       <PhaseTimeline onboarding={onboarding} plan={plan} />
@@ -1578,21 +1583,25 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
         </div>
         <div className="flex gap-3 mb-4 text-xs">
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500"></div>{completed} done</div>
-          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500"></div>{planned} planned</div>
-          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-400"></div>{skipped} skipped</div>
+          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-400"></div>{planned} planned</div>
+          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-300"></div>{skipped} skipped</div>
           {cancelled > 0 && <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-400"></div>{cancelled} replaced</div>}
           <div className="ml-auto font-semibold">{totalHours}h</div>
         </div>
-        {total > 0 && <div className="w-full bg-gray-200 rounded-full h-2 mb-4"><div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${(completed / total) * 100}%` }} /></div>}
+        {total > 0 && (
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+            <div className="h-2 rounded-full transition-all" style={{ width: `${(completed / total) * 100}%`, backgroundColor: '#FFCB00' }} />
+          </div>
+        )}
 
         {weekDates.map((date, dayIdx) => {
           const daySessions = weekSessions.filter((s: PlannedSession) => s.date === date);
           const isToday = date === today;
           return (
-            <div key={date} className={`mb-3 ${isToday ? 'ring-2 ring-blue-400 rounded-lg' : ''}`}>
-              <div className={`flex items-center gap-2 px-2 py-1 rounded-t ${isToday ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                <span className={`text-xs font-bold ${isToday ? 'text-blue-600' : 'text-gray-600'}`}>{dayNames[dayIdx]} {new Date(date + 'T12:00:00').getDate()}</span>
-                {isToday && <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">Today</span>}
+            <div key={date} className={`mb-3 ${isToday ? 'ring-2 ring-black rounded-lg' : ''}`}>
+              <div className={`flex items-center gap-2 px-2 py-1 rounded-t ${isToday ? 'bg-black' : 'bg-gray-50'}`}>
+                <span className={`text-xs font-bold ${isToday ? 'text-white' : 'text-gray-600'}`}>{dayNames[dayIdx]} {new Date(date + 'T12:00:00').getDate()}</span>
+                {isToday && <span className="text-xs px-2 py-0.5 rounded-full text-black font-bold" style={{ backgroundColor: '#FFCB00' }}>Today</span>}
                 {daySessions.length === 0 && <span className="text-xs text-gray-400 ml-auto">Rest day</span>}
               </div>
               {daySessions.map((session: PlannedSession) => (
@@ -1630,11 +1639,7 @@ const PlanScreen = ({ plan, plannedSessions, setPlannedSessions, onboarding, mil
 };
 
 // ============================================================================
-// COACH PLACEHOLDER
-// ============================================================================
-
-// ============================================================================
-// COACH SCREEN — AI Chat + Weekly Summary
+// COACH SCREEN
 // ============================================================================
 
 interface ChatMessage {
@@ -1653,75 +1658,48 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
   const [chatLoaded, setChatLoaded] = useState(false);
   const chatEndRef = React.useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  const scrollToBottom = () => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); };
   useEffect(() => { scrollToBottom(); }, [messages]);
 
-  // Load saved chat history on mount
   useEffect(() => {
     const loadChat = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        const { data } = await supabase
-          .from('coach_messages')
-          .select('role, content, timestamp')
-          .eq('user_id', user.id)
-          .order('timestamp', { ascending: true })
-          .limit(50);
+        const { data } = await supabase.from('coach_messages').select('role, content, timestamp').eq('user_id', user.id).order('timestamp', { ascending: true }).limit(50);
         if (data && data.length > 0) {
           setMessages(data.map((m: any) => ({ role: m.role, content: m.content, timestamp: m.timestamp })));
         }
-      } catch (err) {
-        console.error('Failed to load chat history:', err);
-      }
+      } catch (err) { console.error('Failed to load chat history:', err); }
       setChatLoaded(true);
     };
     loadChat();
   }, []);
 
-  // Save messages to Supabase when they change
   const saveMessage = async (msg: ChatMessage) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      await supabase.from('coach_messages').insert({
-        user_id: user.id,
-        role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp,
-      });
-    } catch (err) {
-      console.error('Failed to save message:', err);
-    }
+      await supabase.from('coach_messages').insert({ user_id: user.id, role: msg.role, content: msg.content, timestamp: msg.timestamp });
+    } catch (err) { console.error('Failed to save message:', err); }
   };
 
   const buildAthleteContext = () => {
     const today = new Date();
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() - today.getDay());
-
     const thisWeekPlanned = plannedSessions.filter((p: PlannedSession) => new Date(p.date) >= weekStart && p.status !== 'cancelled');
     const completed = thisWeekPlanned.filter((p: PlannedSession) => p.status === 'completed').length;
     const skipped = thisWeekPlanned.filter((p: PlannedSession) => p.status === 'skipped').length;
     const total = thisWeekPlanned.length;
-
     const thisWeekTraining = trainingSessions.filter((t: TrainingSession) => new Date(t.date) >= weekStart);
     const swimDistance = thisWeekTraining.filter((t: TrainingSession) => t.sport === 'Swim').reduce((s: number, t: TrainingSession) => s + t.distance, 0);
     const bikeDistance = thisWeekTraining.filter((t: TrainingSession) => t.sport === 'Bike').reduce((s: number, t: TrainingSession) => s + t.distance, 0);
     const runDistance = thisWeekTraining.filter((t: TrainingSession) => t.sport === 'Run').reduce((s: number, t: TrainingSession) => s + t.distance, 0);
     const totalMinutes = thisWeekTraining.reduce((s: number, t: TrainingSession) => s + t.duration, 0);
-
     return {
-      onboarding,
-      plan,
-      weekStats: {
-        completed, skipped, total,
-        compliancePercent: total > 0 ? Math.round((completed / total) * 100) : 0,
-        swimDistance, bikeDistance, runDistance, totalMinutes,
-      },
+      onboarding, plan,
+      weekStats: { completed, skipped, total, compliancePercent: total > 0 ? Math.round((completed / total) * 100) : 0, swimDistance, bikeDistance, runDistance, totalMinutes },
       recentBody: bodyMetrics.slice(0, 5),
       recentSessions: trainingSessions.slice(0, 7),
       plannedSessionsList: plannedSessions.filter((s: PlannedSession) => {
@@ -1734,8 +1712,7 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
 
   const callCoachAPI = async (mode: 'chat' | 'summary', userMessage?: string) => {
     const context = buildAthleteContext();
-    context.canModifyPlan = true;
-    // Send conversation history so coach remembers the chat
+    (context as any).canModifyPlan = true;
     const chatHistory = messages.slice(-20).map(m => ({ role: m.role, content: m.content }));
     try {
       const response = await fetch('/api/coach', {
@@ -1743,42 +1720,22 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode, userMessage, athleteContext: context, chatHistory }),
       });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Failed to get coach response');
-      }
-
+      if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Failed to get coach response'); }
       const data = await response.json();
-
-      // Check for plan modification commands in the response
-      if (data.planChanges && data.planChanges.length > 0) {
-        await applyPlanChanges(data.planChanges);
-      }
-
+      if (data.planChanges && data.planChanges.length > 0) { await applyPlanChanges(data.planChanges); }
       return data.message;
-    } catch (err: any) {
-      console.error('Coach API error:', err);
-      throw err;
-    }
+    } catch (err: any) { console.error('Coach API error:', err); throw err; }
   };
 
   const applyPlanChanges = async (changes: any[]) => {
     for (const change of changes) {
-      if (change.action === 'skip' && change.sessionId) {
-        // Coach-initiated skips are "cancelled" (replaced), not "skipped" (athlete chose to skip)
-        await safeQuery(() => supabase.from('planned_sessions').update({ status: 'cancelled' }).eq('id', change.sessionId), 'coachCancel');
-        setPlannedSessions((prev: PlannedSession[]) => prev.map(p => p.id === change.sessionId ? { ...p, status: 'cancelled' } : p));
-      }
-      if (change.action === 'cancel' && change.sessionId) {
+      if ((change.action === 'skip' || change.action === 'cancel') && change.sessionId) {
         await safeQuery(() => supabase.from('planned_sessions').update({ status: 'cancelled' }).eq('id', change.sessionId), 'coachCancel');
         setPlannedSessions((prev: PlannedSession[]) => prev.map(p => p.id === change.sessionId ? { ...p, status: 'cancelled' } : p));
       }
       if (change.action === 'reschedule' && change.sessionId && change.newDate) {
-        // Mark original as cancelled, create new one
         await safeQuery(() => supabase.from('planned_sessions').update({ status: 'cancelled' }).eq('id', change.sessionId), 'coachRescheduleCancel');
         setPlannedSessions((prev: PlannedSession[]) => prev.map(p => p.id === change.sessionId ? { ...p, status: 'cancelled' } : p));
-        // Add replacement session on new date
         const original = plannedSessions.find((p: PlannedSession) => p.id === change.sessionId);
         if (original) {
           const newSession = { user_id: original.user_id, date: change.newDate, sport: original.sport, type: original.type, duration: original.duration, distance: original.distance, intensity: original.intensity, description: original.description, status: 'planned', completed_session_id: null, created_by: 'coach' };
@@ -1801,7 +1758,6 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
     saveMessage(userMsg);
     setInput('');
     setLoading(true);
-
     try {
       const reply = await callCoachAPI('chat', userMsg.content);
       const assistantMsg: ChatMessage = { role: 'assistant', content: reply, timestamp: new Date().toISOString() };
@@ -1815,14 +1771,9 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
   };
 
   const handleGenerateSummary = async () => {
-    setSummaryLoading(true);
-    setSummary(null);
-    try {
-      const result = await callCoachAPI('summary');
-      setSummary(result);
-    } catch (err: any) {
-      setSummary(`Could not generate summary: ${err.message || 'Please try again.'}`);
-    }
+    setSummaryLoading(true); setSummary(null);
+    try { const result = await callCoachAPI('summary'); setSummary(result); }
+    catch (err: any) { setSummary(`Could not generate summary: ${err.message || 'Please try again.'}`); }
     setSummaryLoading(false);
   };
 
@@ -1837,79 +1788,61 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
     "Add an easy swim session on Saturday",
   ];
 
+  const renderMarkdown = (text: string) =>
+    text.split('\n').map((line: string, i: number) => {
+      if (line.startsWith('**') && line.endsWith('**')) return <h4 key={i} className="font-bold text-gray-900 mt-3 mb-1">{line.replace(/\*\*/g, '')}</h4>;
+      if (line.startsWith('- ')) return <p key={i} className="text-sm text-gray-700 ml-3 mb-1">• {line.slice(2)}</p>;
+      if (line.trim() === '') return <div key={i} className="h-2" />;
+      const parts = line.split(/(\*\*.*?\*\*)/g);
+      return (<p key={i} className="text-sm text-gray-700 mb-1">{parts.map((part: string, j: number) => part.startsWith('**') && part.endsWith('**') ? <strong key={j}>{part.replace(/\*\*/g, '')}</strong> : part)}</p>);
+    });
+
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 140px)' }}>
-      {/* Tab Switcher */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex gap-2">
           <button onClick={() => setActiveTab('summary')}
-            className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${activeTab === 'summary' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+            className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${activeTab === 'summary' ? 'text-black' : 'bg-gray-200 text-gray-700'}`}
+            style={activeTab === 'summary' ? { backgroundColor: '#FFCB00' } : {}}>
             <TrendingUp size={16} /> Weekly Summary
           </button>
           <button onClick={() => setActiveTab('chat')}
-            className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${activeTab === 'chat' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+            className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${activeTab === 'chat' ? 'text-black' : 'bg-gray-200 text-gray-700'}`}
+            style={activeTab === 'chat' ? { backgroundColor: '#FFCB00' } : {}}>
             <Brain size={16} /> Chat with Coach
           </button>
         </div>
       </div>
 
-      {/* Summary Tab */}
       {activeTab === 'summary' && (
         <div className="flex-1 overflow-y-auto px-4 pb-4">
           <div className="bg-white rounded-lg shadow p-4 mb-3">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-lg flex items-center gap-2"><Brain size={20} className="text-purple-500" /> AI Coach Summary</h3>
+              <h3 className="font-bold text-lg flex items-center gap-2"><Brain size={20} style={{ color: '#FFCB00' }} /> AI Coach Summary</h3>
               <button onClick={handleGenerateSummary} disabled={summaryLoading}
-                className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50">
+                className="flex items-center gap-1 px-3 py-1.5 text-black rounded-lg text-sm font-semibold disabled:opacity-50 hover:opacity-80"
+                style={{ backgroundColor: '#FFCB00' }}>
                 {summaryLoading ? <Loader className="animate-spin" size={14} /> : <RefreshCw size={14} />}
                 {summaryLoading ? 'Generating...' : summary ? 'Refresh' : 'Generate'}
               </button>
             </div>
-
             {!summary && !summaryLoading && (
               <div className="text-center py-8 text-gray-400">
-                <Brain className="mx-auto mb-3 text-purple-300" size={40} />
+                <Brain className="mx-auto mb-3 text-gray-300" size={40} />
                 <p className="text-sm mb-1">Click "Generate" to get your personalised weekly summary</p>
                 <p className="text-xs text-gray-400">The AI coach will analyse your training data and give recommendations</p>
               </div>
             )}
-
             {summaryLoading && (
               <div className="text-center py-8">
-                <Loader className="animate-spin mx-auto mb-3 text-purple-400" size={32} />
+                <Loader className="animate-spin mx-auto mb-3" size={32} style={{ color: '#FFCB00' }} />
                 <p className="text-sm text-gray-500">Analysing your training data...</p>
               </div>
             )}
-
-            {summary && !summaryLoading && (
-              <div className="prose prose-sm max-w-none">
-                {summary.split('\n').map((line: string, i: number) => {
-                  if (line.startsWith('**') && line.endsWith('**')) {
-                    return <h4 key={i} className="font-bold text-gray-900 mt-3 mb-1">{line.replace(/\*\*/g, '')}</h4>;
-                  }
-                  if (line.startsWith('- ')) {
-                    return <p key={i} className="text-sm text-gray-700 ml-3 mb-1">\u2022 {line.slice(2)}</p>;
-                  }
-                  if (line.trim() === '') return <div key={i} className="h-2" />;
-                  // Handle inline bold
-                  const parts = line.split(/(\*\*.*?\*\*)/g);
-                  return (
-                    <p key={i} className="text-sm text-gray-700 mb-1">
-                      {parts.map((part: string, j: number) =>
-                        part.startsWith('**') && part.endsWith('**')
-                          ? <strong key={j}>{part.replace(/\*\*/g, '')}</strong>
-                          : part
-                      )}
-                    </p>
-                  );
-                })}
-              </div>
-            )}
+            {summary && !summaryLoading && <div className="prose prose-sm max-w-none">{renderMarkdown(summary)}</div>}
           </div>
-
-          {/* Quick Stats Card */}
-          <div className="bg-purple-50 rounded-lg p-4">
-            <h4 className="font-semibold text-sm text-purple-800 mb-2">Your Data Snapshot</h4>
+          <div className="rounded-lg p-4" style={{ backgroundColor: '#FFFBCC' }}>
+            <h4 className="font-semibold text-sm mb-2" style={{ color: '#7A6000' }}>Your Data Snapshot</h4>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="bg-white rounded p-2"><span className="text-gray-500">Sessions logged:</span> <span className="font-bold">{trainingSessions.length}</span></div>
               <div className="bg-white rounded p-2"><span className="text-gray-500">Planned:</span> <span className="font-bold">{plannedSessions.length}</span></div>
@@ -1920,84 +1853,60 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
         </div>
       )}
 
-      {/* Chat Tab */}
       {activeTab === 'chat' && (
         <>
           <div className="flex-1 overflow-y-auto px-4 pb-2">
             {messages.length === 0 && (
               <div className="text-center py-6">
-                <Brain className="mx-auto mb-3 text-purple-300" size={40} />
+                <Brain className="mx-auto mb-3 text-gray-300" size={40} />
                 <p className="text-sm text-gray-500 mb-4">Ask your AI coach anything about your training</p>
                 <div className="space-y-2">
                   {quickQuestions.map((q, i) => (
-                    <button key={i} onClick={() => { setInput(q); }}
-                      className="w-full text-left px-3 py-2 bg-purple-50 rounded-lg text-sm text-purple-700 hover:bg-purple-100 transition-colors">
+                    <button key={i} onClick={() => setInput(q)}
+                      className="w-full text-left px-3 py-2 rounded-lg text-sm text-black hover:opacity-80 transition-colors"
+                      style={{ backgroundColor: '#FFFBCC', border: '1px solid #FFCB00' }}>
                       {q}
                     </button>
                   ))}
                 </div>
               </div>
             )}
-
             {messages.map((msg, i) => (
               <div key={i} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-lg px-3 py-2 ${
-                  msg.role === 'user'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-white shadow text-gray-800'
-                }`}>
+                <div className={`max-w-[85%] rounded-lg px-3 py-2 ${msg.role === 'user' ? 'text-black' : 'bg-white shadow text-gray-800'}`}
+                  style={msg.role === 'user' ? { backgroundColor: '#FFCB00' } : {}}>
                   {msg.role === 'assistant' ? (
-                    <div className="text-sm">
-                      {msg.content.split('\n').map((line: string, j: number) => {
-                        if (line.trim() === '') return <div key={j} className="h-1" />;
-                        const parts = line.split(/(\*\*.*?\*\*)/g);
-                        return (
-                          <p key={j} className="mb-1">
-                            {parts.map((part: string, k: number) =>
-                              part.startsWith('**') && part.endsWith('**')
-                                ? <strong key={k}>{part.replace(/\*\*/g, '')}</strong>
-                                : part
-                            )}
-                          </p>
-                        );
-                      })}
-                    </div>
+                    <div className="text-sm">{renderMarkdown(msg.content)}</div>
                   ) : (
                     <p className="text-sm">{msg.content}</p>
                   )}
-                  <div className={`text-xs mt-1 ${msg.role === 'user' ? 'text-purple-200' : 'text-gray-400'}`}>
+                  <div className={`text-xs mt-1 ${msg.role === 'user' ? 'text-yellow-800' : 'text-gray-400'}`}>
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
               </div>
             ))}
-
             {loading && (
               <div className="flex justify-start mb-3">
                 <div className="bg-white shadow rounded-lg px-4 py-3 flex items-center gap-2">
-                  <Loader className="animate-spin text-purple-400" size={16} />
+                  <Loader className="animate-spin" size={16} style={{ color: '#FFCB00' }} />
                   <span className="text-sm text-gray-500">Coach is thinking...</span>
                 </div>
               </div>
             )}
-
             <div ref={chatEndRef} />
           </div>
-
-          {/* Chat Input */}
           <div className="px-4 pb-3 pt-2 border-t bg-white">
             <div className="flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
+              <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Ask your coach..."
-                className="flex-1 p-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                disabled={loading}
-              />
+                className="flex-1 p-3 border rounded-lg text-sm focus:outline-none focus:ring-2"
+                style={{ '--tw-ring-color': '#FFCB00' } as any}
+                disabled={loading} />
               <button onClick={handleSendMessage} disabled={loading || !input.trim()}
-                className="bg-purple-600 text-white px-4 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center">
+                className="text-black px-4 rounded-lg disabled:opacity-50 flex items-center hover:opacity-80"
+                style={{ backgroundColor: '#FFCB00' }}>
                 <Send size={18} />
               </button>
             </div>
@@ -2009,7 +1918,7 @@ const CoachScreen = ({ onboarding, plan, plannedSessions, setPlannedSessions, tr
 };
 
 // ============================================================================
-// ACCOUNT / PROFILE SETTINGS SCREEN
+// ACCOUNT SCREEN
 // ============================================================================
 
 const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any) => {
@@ -2043,19 +1952,9 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
     setSaving(true);
     const updatedOnboarding = { ...onboarding, ...form };
     const dbData = onboardingToDb(updatedOnboarding, user.id);
-    console.log('Saving profile data:', JSON.stringify(dbData));
-    const { error } = await safeQuery(
-      () => supabase.from('onboarding_data').upsert(dbData, { onConflict: 'user_id' }),
-      'updateProfile'
-    );
-    if (!error) {
-      setOnboarding(updatedOnboarding);
-      showToast('Profile updated!', 'success');
-      setEditing(false);
-    } else {
-      console.error('Save error:', error);
-      showToast('Failed to save: ' + error, 'error');
-    }
+    const { error } = await safeQuery(() => supabase.from('onboarding_data').upsert(dbData, { onConflict: 'user_id' }), 'updateProfile');
+    if (!error) { setOnboarding(updatedOnboarding); showToast('Profile updated!', 'success'); setEditing(false); }
+    else { showToast('Failed to save: ' + error, 'error'); }
     setSaving(false);
   };
 
@@ -2139,7 +2038,8 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
         <div className={field.type === 'text' ? 'w-full mt-1' : 'w-40'}>
           {field.type === 'toggle' ? (
             <button onClick={() => setForm({ ...form, [field.key]: !(form as any)[field.key] })}
-              className={`w-12 h-6 rounded-full relative transition-colors ${(form as any)[field.key] ? 'bg-green-500' : 'bg-gray-300'}`}>
+              className={`w-12 h-6 rounded-full relative transition-colors ${(form as any)[field.key] ? '' : 'bg-gray-300'}`}
+              style={(form as any)[field.key] ? { backgroundColor: '#FFCB00' } : {}}>
               <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${(form as any)[field.key] ? 'left-6' : 'left-0.5'}`} />
             </button>
           ) : field.type === 'select' ? (
@@ -2168,14 +2068,15 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
 
   return (
     <div className="p-4 space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => setActiveScreen('home')} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronLeft size={20} /></button>
           <h2 className="text-xl font-bold text-gray-900">Settings</h2>
         </div>
         {!editing ? (
-          <button onClick={() => setEditing(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
+          <button onClick={() => setEditing(true)}
+            className="flex items-center gap-2 px-4 py-2 text-black rounded-lg text-sm font-semibold hover:opacity-80"
+            style={{ backgroundColor: '#FFCB00' }}>
             <Edit3 size={14} /> Edit
           </button>
         ) : (
@@ -2183,22 +2084,23 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
             <button onClick={() => { setEditing(false); resetForm(); }}
               className="px-3 py-2 border rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
             <button onClick={handleSave} disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
+              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm font-semibold hover:bg-gray-900 disabled:opacity-50">
               {saving ? <Loader className="animate-spin" size={14} /> : <Save size={14} />} Save
             </button>
           </div>
         )}
       </div>
 
-      {/* User Info Card */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl p-5">
+      {/* User info card — Huel black */}
+      <div className="bg-black text-white rounded-xl p-5">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-xl font-bold">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold text-black"
+            style={{ backgroundColor: '#FFCB00' }}>
             {(user.user_metadata?.full_name || user.email || '?').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
           </div>
           <div>
             <h3 className="font-bold text-lg">{user.user_metadata?.full_name || 'Athlete'}</h3>
-            <p className="text-sm opacity-80">{user.email}</p>
+            <p className="text-sm opacity-60">{user.email}</p>
           </div>
         </div>
       </div>
@@ -2211,21 +2113,15 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
           { id: 'raceInfo' as const, label: '🏁 Race Info' },
         ].map(tab => (
           <button key={tab.id} onClick={() => setAccountTab(tab.id)}
-            className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${
-              accountTab === tab.id ? 'bg-white shadow text-gray-900' : 'text-gray-500'
-            }`}>
+            className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${accountTab === tab.id ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}>
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Race location preview on Race Info tab */}
       {accountTab === 'raceInfo' && onboarding.raceLocation && (
         <div className="relative rounded-xl overflow-hidden" style={{ height: 120 }}>
-          <div className="absolute inset-0 bg-cover bg-center" style={{
-            backgroundImage: `url(${getRaceImageUrl(onboarding.raceLocation)})`,
-            filter: 'brightness(0.4) grayscale(0.7)',
-          }} />
+          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${getRaceImageUrl(onboarding.raceLocation)})`, filter: 'brightness(0.3) grayscale(0.7)' }} />
           <div className="relative z-10 p-4 text-white flex items-end h-full">
             <div>
               <div className="text-xs opacity-70">📍 Race Location</div>
@@ -2236,7 +2132,6 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
         </div>
       )}
 
-      {/* Field Groups for current tab */}
       {currentFieldGroups.map((group) => (
         <div key={group.title} className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b">
@@ -2248,7 +2143,6 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
         </div>
       ))}
 
-      {/* PIN Section - only on Profile tab */}
       {accountTab === 'profile' && user.email === MANOLIS_EMAIL && (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b">
@@ -2271,7 +2165,7 @@ const AccountScreen = ({ user, onboarding, setOnboarding, setActiveScreen }: any
 };
 
 // ============================================================================
-// NUTRITION SCREEN — AI Meal Plans + Manual Logging
+// NUTRITION SCREEN
 // ============================================================================
 
 interface MealEntry {
@@ -2307,7 +2201,6 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Default habits for first-time use
   const defaultHabits: Omit<DailyHabit, 'id'>[] = [
     { name: 'Drink 2L water', icon: '💧', completed: false, date: today },
     { name: 'Take creatine', icon: '💊', completed: false, date: today },
@@ -2317,55 +2210,28 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
     { name: 'Stretch / mobility', icon: '🧘', completed: false, date: today },
   ];
 
-  // Load habits from Supabase
   useEffect(() => {
     const loadHabits = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-
-        // Load today's habits
-        const { data } = await supabase
-          .from('daily_habits')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('date', today)
-          .order('created_at');
-
+        const { data } = await supabase.from('daily_habits').select('*').eq('user_id', user.id).eq('date', today).order('created_at');
         if (data && data.length > 0) {
           setHabits(data);
         } else {
-          // Check if user has habit templates (from any previous day)
-          const { data: templates } = await supabase
-            .from('daily_habits')
-            .select('name, icon')
-            .eq('user_id', user.id)
-            .order('date', { ascending: false })
-            .limit(20);
-
+          const { data: templates } = await supabase.from('daily_habits').select('name, icon').eq('user_id', user.id).order('date', { ascending: false }).limit(20);
           if (templates && templates.length > 0) {
-            // Use unique habits from previous days as templates
             const seen = new Set<string>();
-            const uniqueTemplates = templates.filter(t => { if (seen.has(t.name)) return false; seen.add(t.name); return true; });
-            const todayHabits = uniqueTemplates.map(t => ({
-              name: t.name, icon: t.icon, completed: false, date: today,
-            }));
-            // Insert today's habits
-            const { data: inserted } = await supabase.from('daily_habits').insert(
-              todayHabits.map(h => ({ ...h, user_id: user.id }))
-            ).select();
+            const uniqueTemplates = templates.filter((t: any) => { if (seen.has(t.name)) return false; seen.add(t.name); return true; });
+            const todayHabits = uniqueTemplates.map((t: any) => ({ name: t.name, icon: t.icon, completed: false, date: today }));
+            const { data: inserted } = await supabase.from('daily_habits').insert(todayHabits.map((h: any) => ({ ...h, user_id: user.id }))).select();
             if (inserted) setHabits(inserted);
           } else {
-            // First time — use defaults
-            const { data: inserted } = await supabase.from('daily_habits').insert(
-              defaultHabits.map(h => ({ ...h, user_id: user.id }))
-            ).select();
+            const { data: inserted } = await supabase.from('daily_habits').insert(defaultHabits.map(h => ({ ...h, user_id: user.id }))).select();
             if (inserted) setHabits(inserted);
           }
         }
-      } catch (err) {
-        console.error('Failed to load habits:', err);
-      }
+      } catch (err) { console.error('Failed to load habits:', err); }
       setHabitsLoaded(true);
     };
     loadHabits();
@@ -2383,13 +2249,9 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
     if (!newHabitName.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: inserted } = await supabase.from('daily_habits').insert({
-      user_id: user.id, name: newHabitName.trim(), icon: newHabitIcon, completed: false, date: today,
-    }).select().single();
+    const { data: inserted } = await supabase.from('daily_habits').insert({ user_id: user.id, name: newHabitName.trim(), icon: newHabitIcon, completed: false, date: today }).select().single();
     if (inserted) setHabits(prev => [...prev, inserted]);
-    setNewHabitName('');
-    setNewHabitIcon('💧');
-    setShowAddHabit(false);
+    setNewHabitName(''); setNewHabitIcon('💧'); setShowAddHabit(false);
   };
 
   const deleteHabit = async (habitId: string) => {
@@ -2405,7 +2267,6 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
   const totalCarbs = todayMeals.reduce((s, m) => s + m.carbs, 0);
   const totalFat = todayMeals.reduce((s, m) => s + m.fat, 0);
 
-  // Estimate daily targets based on weight and training
   const weight = onboarding?.weight || 75;
   const targetCalories = Math.round(weight * 35);
   const targetProtein = Math.round(weight * 1.8);
@@ -2413,22 +2274,15 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
   const targetFat = Math.round(weight * 1);
 
   const handleGenerateMealPlan = async () => {
-    setMealPlanLoading(true);
-    setMealPlan(null);
+    setMealPlanLoading(true); setMealPlan(null);
     try {
       const response = await fetch('/api/coach', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'nutrition',
-          athleteContext: { onboarding, plan, recentSessions: trainingSessions.slice(0, 7), targetCalories, targetProtein, targetCarbs, targetFat },
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'nutrition', athleteContext: { onboarding, plan, recentSessions: trainingSessions.slice(0, 7), targetCalories, targetProtein, targetCarbs, targetFat } }),
       });
       const data = await response.json();
       setMealPlan(data.message);
-    } catch (err) {
-      setMealPlan('Could not generate meal plan. Please try again.');
-    }
+    } catch (err) { setMealPlan('Could not generate meal plan. Please try again.'); }
     setMealPlanLoading(false);
   };
 
@@ -2439,82 +2293,68 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
     setShowAddMeal(false);
   };
 
-  const handleDeleteMeal = (id: string) => {
-    setTodayMeals(todayMeals.filter(m => m.id !== id));
-  };
-
   return (
     <div className="p-4 space-y-4">
       <div className="flex gap-2">
         <button onClick={() => setActiveTab('habits')}
-          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-1 ${activeTab === 'habits' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-1 ${activeTab === 'habits' ? 'text-black' : 'bg-gray-200 text-gray-700'}`}
+          style={activeTab === 'habits' ? { backgroundColor: '#FFCB00' } : {}}>
           ✅ Habits
         </button>
         <button onClick={() => setActiveTab('plan')}
-          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-1 ${activeTab === 'plan' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-1 ${activeTab === 'plan' ? 'text-black' : 'bg-gray-200 text-gray-700'}`}
+          style={activeTab === 'plan' ? { backgroundColor: '#FFCB00' } : {}}>
           <Brain size={14} /> Meal Plan
         </button>
         <button onClick={() => setActiveTab('log')}
-          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-1 ${activeTab === 'log' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          className={`flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-1 ${activeTab === 'log' ? 'text-black' : 'bg-gray-200 text-gray-700'}`}
+          style={activeTab === 'log' ? { backgroundColor: '#FFCB00' } : {}}>
           <UtensilsCrossed size={14} /> Food Log
         </button>
       </div>
 
-      {/* DAILY HABITS TAB */}
       {activeTab === 'habits' && (
         <div className="space-y-3">
-          {/* Progress bar */}
-          <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg p-4">
+          <div className="bg-black text-white rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-bold text-sm">Today's Habits</h3>
-              <span className="text-sm font-bold">{completedCount}/{habits.length}</span>
+              <span className="text-sm font-bold" style={{ color: '#FFCB00' }}>{completedCount}/{habits.length}</span>
             </div>
-            <div className="w-full bg-white bg-opacity-30 rounded-full h-3">
-              <div className="bg-white rounded-full h-3 transition-all duration-500" style={{ width: `${habitProgress}%` }} />
+            <div className="w-full bg-white bg-opacity-20 rounded-full h-3">
+              <div className="rounded-full h-3 transition-all duration-500" style={{ width: `${habitProgress}%`, backgroundColor: '#FFCB00' }} />
             </div>
-            <div className="text-xs mt-1 opacity-80">{habitProgress}% complete</div>
+            <div className="text-xs mt-1 opacity-60">{habitProgress}% complete</div>
           </div>
 
-          {/* Habits checklist */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
             {habits.map((habit) => (
               <div key={habit.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 active:bg-gray-50">
                 <button onClick={() => toggleHabit(habit.id!)}
-                  className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                    habit.completed ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-transparent hover:border-green-400'
-                  }`}>
+                  className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${habit.completed ? 'border-black text-black' : 'border-gray-300 text-transparent hover:border-gray-400'}`}
+                  style={habit.completed ? { backgroundColor: '#FFCB00', borderColor: '#FFCB00' } : {}}>
                   <Check size={16} />
                 </button>
                 <span className="text-xl">{habit.icon}</span>
-                <span className={`flex-1 text-sm font-medium ${habit.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                  {habit.name}
-                </span>
-                <button onClick={() => deleteHabit(habit.id!)} className="text-gray-300 hover:text-red-400 p-1">
-                  <X size={14} />
-                </button>
+                <span className={`flex-1 text-sm font-medium ${habit.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>{habit.name}</span>
+                <button onClick={() => deleteHabit(habit.id!)} className="text-gray-300 hover:text-red-400 p-1"><X size={14} /></button>
               </div>
             ))}
-
             {habits.length === 0 && habitsLoaded && (
-              <div className="text-center py-8 text-gray-400">
-                <p className="text-sm">No habits yet. Add your first one!</p>
-              </div>
+              <div className="text-center py-8 text-gray-400"><p className="text-sm">No habits yet. Add your first one!</p></div>
             )}
           </div>
 
-          {/* Add habit form */}
           {showAddHabit ? (
             <div className="bg-white rounded-lg shadow p-4 space-y-3">
               <h3 className="font-bold text-sm">Add Habit</h3>
-              <div className="flex gap-2">
-                <div className="flex gap-1 flex-wrap">
-                  {['💧', '💊', '🦴', '🥩', '🥗', '🧘', '😴', '☀️', '🏃', '💪', '🧊', '📖'].map(emoji => (
-                    <button key={emoji} onClick={() => setNewHabitIcon(emoji)}
-                      className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center ${newHabitIcon === emoji ? 'bg-green-100 ring-2 ring-green-500' : 'bg-gray-100'}`}>
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex gap-1 flex-wrap">
+                {['💧', '💊', '🦴', '🥩', '🥗', '🧘', '😴', '☀️', '🏃', '💪', '🧊', '📖'].map(emoji => (
+                  <button key={emoji} onClick={() => setNewHabitIcon(emoji)}
+                    className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center ${newHabitIcon === emoji ? 'ring-2 ring-black' : 'bg-gray-100'}`}
+                    style={newHabitIcon === emoji ? { backgroundColor: '#FFCB00' } : {}}>
+                    {emoji}
+                  </button>
+                ))}
               </div>
               <input value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)}
                 placeholder="e.g. Drink 2L water, Take creatine..."
@@ -2522,66 +2362,61 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
                 onKeyDown={(e) => e.key === 'Enter' && addHabit()} />
               <div className="flex gap-2">
                 <button onClick={() => setShowAddHabit(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-semibold text-sm">Cancel</button>
-                <button onClick={addHabit} className="flex-1 py-2 bg-green-600 text-white rounded-lg font-semibold text-sm">Add</button>
+                <button onClick={addHabit} className="flex-1 py-2 bg-black text-white rounded-lg font-semibold text-sm">Add</button>
               </div>
             </div>
           ) : (
             <button onClick={() => setShowAddHabit(true)}
-              className="w-full py-3 bg-white rounded-lg shadow text-sm font-semibold text-green-600 flex items-center justify-center gap-2 hover:bg-green-50">
+              className="w-full py-3 bg-white rounded-lg shadow text-sm font-semibold flex items-center justify-center gap-2 hover:bg-gray-50 text-black border border-gray-200">
               <Plus size={16} /> Add Habit
             </button>
           )}
 
-          {/* Quick tip */}
-          <div className="bg-green-50 rounded-lg p-3 text-xs text-green-800">
-            💡 Habits reset daily. Your list carries over from yesterday — just tick them off each day. Ask the AI Coach to suggest habits for your training phase!
+          <div className="rounded-lg p-3 text-xs" style={{ backgroundColor: '#FFFBCC', color: '#7A6000' }}>
+            💡 Habits reset daily. Your list carries over from yesterday — just tick them off each day.
           </div>
         </div>
       )}
 
       {activeTab === 'plan' && (
         <div className="space-y-3">
-          {/* Daily Targets */}
-          <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg p-4">
+          <div className="bg-black text-white rounded-lg p-4">
             <h3 className="font-bold text-sm mb-2">Daily Nutrition Targets</h3>
             <div className="grid grid-cols-4 gap-2 text-center">
-              <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{targetCalories}</div><div className="text-xs opacity-80">kcal</div></div>
-              <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{targetProtein}g</div><div className="text-xs opacity-80">Protein</div></div>
-              <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{targetCarbs}g</div><div className="text-xs opacity-80">Carbs</div></div>
-              <div className="bg-white bg-opacity-20 rounded p-2"><div className="text-lg font-bold">{targetFat}g</div><div className="text-xs opacity-80">Fat</div></div>
+              <div className="bg-white bg-opacity-10 rounded p-2"><div className="text-lg font-bold">{targetCalories}</div><div className="text-xs opacity-70">kcal</div></div>
+              <div className="bg-white bg-opacity-10 rounded p-2"><div className="text-lg font-bold">{targetProtein}g</div><div className="text-xs opacity-70">Protein</div></div>
+              <div className="bg-white bg-opacity-10 rounded p-2"><div className="text-lg font-bold">{targetCarbs}g</div><div className="text-xs opacity-70">Carbs</div></div>
+              <div className="bg-white bg-opacity-10 rounded p-2"><div className="text-lg font-bold">{targetFat}g</div><div className="text-xs opacity-70">Fat</div></div>
             </div>
           </div>
 
-          {/* AI Meal Plan */}
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-lg flex items-center gap-2"><UtensilsCrossed size={20} className="text-green-500" /> AI Meal Plan</h3>
+              <h3 className="font-bold text-lg flex items-center gap-2"><UtensilsCrossed size={20} style={{ color: '#FFCB00' }} /> AI Meal Plan</h3>
               <button onClick={handleGenerateMealPlan} disabled={mealPlanLoading}
-                className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
+                className="flex items-center gap-1 px-3 py-1.5 text-black rounded-lg text-sm font-semibold disabled:opacity-50 hover:opacity-80"
+                style={{ backgroundColor: '#FFCB00' }}>
                 {mealPlanLoading ? <Loader className="animate-spin" size={14} /> : <RefreshCw size={14} />}
                 {mealPlanLoading ? 'Generating...' : mealPlan ? 'Refresh' : 'Generate'}
               </button>
             </div>
-
             {!mealPlan && !mealPlanLoading && (
               <div className="text-center py-6 text-gray-400">
-                <UtensilsCrossed className="mx-auto mb-3 text-green-300" size={36} />
+                <UtensilsCrossed className="mx-auto mb-3 text-gray-300" size={36} />
                 <p className="text-sm">Generate a personalised meal plan based on your training</p>
               </div>
             )}
-
             {mealPlanLoading && (
               <div className="text-center py-6">
-                <Loader className="animate-spin mx-auto mb-3 text-green-400" size={28} />
+                <Loader className="animate-spin mx-auto mb-3" size={28} style={{ color: '#FFCB00' }} />
                 <p className="text-sm text-gray-500">Creating your meal plan...</p>
               </div>
             )}
-
             {mealPlan && !mealPlanLoading && (
               <div className="prose prose-sm max-w-none">
                 {mealPlan.split('\n').map((line: string, i: number) => {
                   if (line.startsWith('**') && line.endsWith('**')) return <h4 key={i} className="font-bold text-gray-900 mt-3 mb-1">{line.replace(/\*\*/g, '')}</h4>;
-                  if (line.startsWith('- ')) return <p key={i} className="text-sm text-gray-700 ml-3 mb-1">{'\u2022'} {line.slice(2)}</p>;
+                  if (line.startsWith('- ')) return <p key={i} className="text-sm text-gray-700 ml-3 mb-1">• {line.slice(2)}</p>;
                   if (line.trim() === '') return <div key={i} className="h-2" />;
                   const parts = line.split(/(\*\*.*?\*\*)/g);
                   return (<p key={i} className="text-sm text-gray-700 mb-1">{parts.map((part: string, j: number) => part.startsWith('**') && part.endsWith('**') ? <strong key={j}>{part.replace(/\*\*/g, '')}</strong> : part)}</p>);
@@ -2594,65 +2429,54 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
 
       {activeTab === 'log' && (
         <div className="space-y-3">
-          {/* Today's Progress */}
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-bold text-lg mb-3">Today's Intake</h3>
             <div className="grid grid-cols-4 gap-2 mb-3">
-              <div className="text-center">
-                <div className="text-xs text-gray-500 mb-1">Calories</div>
-                <div className={`text-lg font-bold ${totalCals >= targetCalories ? 'text-green-600' : 'text-gray-800'}`}>{totalCals}</div>
-                <div className="text-xs text-gray-400">/ {targetCalories}</div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1"><div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (totalCals / targetCalories) * 100)}%` }} /></div>
-              </div>
-              <div className="text-center">
-                <div className="text-xs text-gray-500 mb-1">Protein</div>
-                <div className={`text-lg font-bold ${totalProtein >= targetProtein ? 'text-blue-600' : 'text-gray-800'}`}>{totalProtein}g</div>
-                <div className="text-xs text-gray-400">/ {targetProtein}g</div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1"><div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (totalProtein / targetProtein) * 100)}%` }} /></div>
-              </div>
-              <div className="text-center">
-                <div className="text-xs text-gray-500 mb-1">Carbs</div>
-                <div className={`text-lg font-bold ${totalCarbs >= targetCarbs ? 'text-orange-600' : 'text-gray-800'}`}>{totalCarbs}g</div>
-                <div className="text-xs text-gray-400">/ {targetCarbs}g</div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1"><div className="bg-orange-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (totalCarbs / targetCarbs) * 100)}%` }} /></div>
-              </div>
-              <div className="text-center">
-                <div className="text-xs text-gray-500 mb-1">Fat</div>
-                <div className={`text-lg font-bold ${totalFat >= targetFat ? 'text-purple-600' : 'text-gray-800'}`}>{totalFat}g</div>
-                <div className="text-xs text-gray-400">/ {targetFat}g</div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1"><div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (totalFat / targetFat) * 100)}%` }} /></div>
-              </div>
+              {[
+                { label: 'Calories', value: totalCals, target: targetCalories, color: '#FFCB00', textColor: '#7A6000' },
+                { label: 'Protein', value: `${totalProtein}g`, target: `${targetProtein}g`, color: '#3b82f6', textColor: '#1d4ed8' },
+                { label: 'Carbs', value: `${totalCarbs}g`, target: `${targetCarbs}g`, color: '#f97316', textColor: '#c2410c' },
+                { label: 'Fat', value: `${totalFat}g`, target: `${targetFat}g`, color: '#8b5cf6', textColor: '#6d28d9' },
+              ].map((item) => (
+                <div key={item.label} className="text-center">
+                  <div className="text-xs text-gray-500 mb-1">{item.label}</div>
+                  <div className="text-lg font-bold" style={{ color: item.textColor }}>{item.value}</div>
+                  <div className="text-xs text-gray-400">/ {item.target}</div>
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                    <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, (Number(String(item.value).replace('g', '')) / Number(String(item.target).replace('g', ''))) * 100)}%`, backgroundColor: item.color }} />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Meals List */}
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold">Meals</h3>
-              <button onClick={() => setShowAddMeal(true)} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold"><Plus size={14} /> Add Meal</button>
+              <button onClick={() => setShowAddMeal(true)}
+                className="flex items-center gap-1 px-3 py-1.5 text-black rounded-lg text-sm font-semibold hover:opacity-80"
+                style={{ backgroundColor: '#FFCB00' }}>
+                <Plus size={14} /> Add Meal
+              </button>
             </div>
-
             {todayMeals.length === 0 && !showAddMeal && (
               <p className="text-gray-400 text-sm text-center py-4">No meals logged today. Tap "Add Meal" to start tracking.</p>
             )}
-
             {todayMeals.map((meal) => (
               <div key={meal.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-2">
                 <div className="flex-1">
                   <div className="font-semibold text-sm">{meal.food}</div>
                   <div className="text-xs text-gray-500">{meal.meal} • {meal.calories} kcal • P:{meal.protein}g C:{meal.carbs}g F:{meal.fat}g</div>
                 </div>
-                <button onClick={() => handleDeleteMeal(meal.id!)} className="text-red-400 hover:text-red-600"><X size={16} /></button>
+                <button onClick={() => setTodayMeals(todayMeals.filter(m => m.id !== meal.id))} className="text-red-400 hover:text-red-600"><X size={16} /></button>
               </div>
             ))}
           </div>
 
-          {/* Add Meal Form */}
           {showAddMeal && (
             <div className="bg-white rounded-lg shadow p-4 space-y-3">
               <h3 className="font-bold">Add Meal</h3>
-              <div>
-                <label className="block text-sm font-medium mb-1">Meal</label>
+              <div><label className="block text-sm font-medium mb-1">Meal</label>
                 <select value={mealForm.meal} onChange={(e) => setMealForm({ ...mealForm, meal: e.target.value })} className="w-full p-3 border rounded-lg">
                   <option>Breakfast</option><option>Snack AM</option><option>Lunch</option><option>Snack PM</option><option>Dinner</option><option>Post-Workout</option>
                 </select>
@@ -2668,7 +2492,7 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => setShowAddMeal(false)} className="flex-1 py-2 border rounded-lg font-semibold">Cancel</button>
-                <button onClick={handleAddMeal} className="flex-1 py-2 bg-green-600 text-white rounded-lg font-semibold">Add</button>
+                <button onClick={handleAddMeal} className="flex-1 py-2 bg-black text-white rounded-lg font-semibold">Add</button>
               </div>
             </div>
           )}
@@ -2679,17 +2503,34 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
 };
 
 // ============================================================================
-// BOTTOM NAV — 6 tabs
+// BOTTOM NAV
 // ============================================================================
 
+const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string; setActiveTab: (t: string) => void }) => (
+  <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+    <div className="grid grid-cols-7 gap-0.5 p-1.5">
+      {[
+        { id: 'home', icon: TrendingUp, label: 'Home' },
+        { id: 'calendar', icon: Calendar, label: 'Calendar' },
+        { id: 'log', icon: Plus, label: 'Log' },
+        { id: 'plan', icon: Target, label: 'Plan' },
+        { id: 'gym', icon: Dumbbell, label: 'Gym' },
+        { id: 'nutrition', icon: UtensilsCrossed, label: 'Food' },
+        { id: 'coach', icon: Brain, label: 'Coach' },
+      ].map(({ id, icon: Icon, label }) => (
+        <button key={id} onClick={() => setActiveTab(id)}
+          className={`flex flex-col items-center py-1.5 px-0.5 rounded transition-colors ${activeTab === id ? 'text-black' : 'text-gray-500'}`}
+          style={activeTab === id ? { backgroundColor: '#FFCB00' } : {}}>
+          <Icon size={id === 'log' ? 22 : 18} />
+          <span className="text-[9px] mt-0.5">{label}</span>
+        </button>
+      ))}
+    </div>
+  </div>
+);
 
 // ============================================================================
-// GYM SCREEN — Push/Pull/Legs Strength Tracker
-// ============================================================================
-
-
-// ============================================================================
-// TYPES
+// GYM SCREEN — unchanged (all logic same, only minor color tweaks below)
 // ============================================================================
 
 interface GymExercise {
@@ -2744,10 +2585,6 @@ interface GymTemplate {
   exercises: { exercise_id: string; order_index: number }[];
 }
 
-// ============================================================================
-// SVG MUSCLE ICONS
-// ============================================================================
-
 const EXERCISE_IMG_BASE = 'https://tvpzjylyickdmeurthxe.supabase.co/storage/v1/object/public/exercise-images';
 
 const ExerciseImage = ({ exercise, size = 36 }: { exercise?: { slug?: string; day_type?: string; primary_muscle?: string }; size?: number }) => {
@@ -2757,7 +2594,6 @@ const ExerciseImage = ({ exercise, size = 36 }: { exercise?: { slug?: string; da
   const url = slug && folder ? `${EXERCISE_IMG_BASE}/${folder}/${slug}.jpg` : '';
 
   if (!url || failed) {
-    // Fallback to emoji
     const muscle = exercise?.primary_muscle || '';
     const iconMap: Record<string, { emoji: string; color: string }> = {
       'Chest': { emoji: '🫁', color: '#ef4444' }, 'Upper Chest': { emoji: '🫁', color: '#f97316' },
@@ -2784,34 +2620,21 @@ const ExerciseImage = ({ exercise, size = 36 }: { exercise?: { slug?: string; da
   );
 };
 
-// Equipment badge
 const EquipmentBadge = ({ equipment }: { equipment: string | string[] }) => {
   const colors: Record<string, string> = {
-    'Barbell': 'bg-red-100 text-red-700',
-    'Dumbbells': 'bg-blue-100 text-blue-700',
-    'Dumbbell': 'bg-blue-100 text-blue-700',
-    'Cable Machine': 'bg-purple-100 text-purple-700',
-    'Cable': 'bg-purple-100 text-purple-700',
-    'Machine': 'bg-green-100 text-green-700',
-    'Smith Machine': 'bg-green-100 text-green-700',
-    'Leg Press Machine': 'bg-green-100 text-green-700',
-    'Bodyweight': 'bg-gray-100 text-gray-700',
-    'Bench': 'bg-amber-100 text-amber-700',
-    'Rack': 'bg-orange-100 text-orange-700',
-    'Pull-Up Bar': 'bg-indigo-100 text-indigo-700',
+    'Barbell': 'bg-red-100 text-red-700', 'Dumbbells': 'bg-blue-100 text-blue-700',
+    'Dumbbell': 'bg-blue-100 text-blue-700', 'Cable Machine': 'bg-purple-100 text-purple-700',
+    'Cable': 'bg-purple-100 text-purple-700', 'Machine': 'bg-green-100 text-green-700',
+    'Smith Machine': 'bg-green-100 text-green-700', 'Leg Press Machine': 'bg-green-100 text-green-700',
+    'Bodyweight': 'bg-gray-100 text-gray-700', 'Bench': 'bg-amber-100 text-amber-700',
+    'Rack': 'bg-orange-100 text-orange-700', 'Pull-Up Bar': 'bg-indigo-100 text-indigo-700',
   };
   const items = Array.isArray(equipment) ? equipment : [equipment];
   const primary = items[0] || '';
   return (
-    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colors[primary] || 'bg-gray-100 text-gray-600'}`}>
-      {primary}
-    </span>
+    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colors[primary] || 'bg-gray-100 text-gray-600'}`}>{primary}</span>
   );
 };
-
-// ============================================================================
-// MAIN GYM SCREEN
-// ============================================================================
 
 const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
   const [view, setView] = useState<'home' | 'workout' | 'history' | 'session-detail'>('home');
@@ -2828,335 +2651,141 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
   const [sessionTimer, setSessionTimer] = useState(0);
   const [timerInterval, setTimerIntervalState] = useState<any>(null);
 
-  // Load exercises on mount
-  useEffect(() => {
-    loadExercises();
-    loadPastSessions();
-    loadRecentSessions();
-    loadTemplates();
-  }, []);
+  useEffect(() => { loadExercises(); loadPastSessions(); loadRecentSessions(); loadTemplates(); }, []);
 
-  // Session timer
   useEffect(() => {
     if (activeSession && !timerInterval) {
       const start = new Date(activeSession.started_at || Date.now()).getTime();
-      const interval = setInterval(() => {
-        setSessionTimer(Math.floor((Date.now() - start) / 1000));
-      }, 1000);
+      const interval = setInterval(() => { setSessionTimer(Math.floor((Date.now() - start) / 1000)); }, 1000);
       setTimerIntervalState(interval);
     }
     return () => { if (timerInterval) clearInterval(timerInterval); };
   }, [activeSession]);
 
-  const loadExercises = async () => {
-    const { data } = await supabase.from('gym_exercises').select('*').order('sort_order');
-    if (data) setExercises(data);
-  };
-
-  const loadPastSessions = async () => {
-    const { data } = await supabase.from('gym_sessions')
-      .select('*')
-      .eq('user_id', user.id)
-      .not('completed_at', 'is', null)
-      .order('date', { ascending: false })
-      .limit(50);
-    if (data) setPastSessions(data);
-  };
-
-  const loadRecentSessions = async () => {
-    const { data } = await supabase.from('gym_sessions')
-      .select('*')
-      .eq('user_id', user.id)
-      .is('completed_at', null)
-      .order('date', { ascending: false })
-      .limit(10);
-    if (data) setRecentSessions(data);
-  };
-
+  const loadExercises = async () => { const { data } = await supabase.from('gym_exercises').select('*').order('sort_order'); if (data) setExercises(data); };
+  const loadPastSessions = async () => { const { data } = await supabase.from('gym_sessions').select('*').eq('user_id', user.id).not('completed_at', 'is', null).order('date', { ascending: false }).limit(50); if (data) setPastSessions(data); };
+  const loadRecentSessions = async () => { const { data } = await supabase.from('gym_sessions').select('*').eq('user_id', user.id).is('completed_at', null).order('date', { ascending: false }).limit(10); if (data) setRecentSessions(data); };
   const loadTemplates = async () => {
-    const { data } = await supabase.from('gym_templates')
-      .select('*, gym_template_exercises(*)')
-      .eq('user_id', user.id);
-    if (data) setTemplates(data.map((t: any) => ({
-      ...t,
-      exercises: (t.gym_template_exercises || []).sort((a: any, b: any) => a.order_index - b.order_index),
-    })));
+    const { data } = await supabase.from('gym_templates').select('*, gym_template_exercises(*)').eq('user_id', user.id);
+    if (data) setTemplates(data.map((t: any) => ({ ...t, exercises: (t.gym_template_exercises || []).sort((a: any, b: any) => a.order_index - b.order_index) })));
   };
 
-  // ========== START WORKOUT ==========
   const startWorkout = async (dayType: 'Push' | 'Pull' | 'Legs', template?: GymTemplate) => {
-    const { data: session } = await supabase.from('gym_sessions').insert({
-      user_id: user.id,
-      date: new Date().toISOString().split('T')[0],
-      day_type: dayType,
-      started_at: new Date().toISOString(),
-    }).select().single();
-
+    const { data: session } = await supabase.from('gym_sessions').insert({ user_id: user.id, date: new Date().toISOString().split('T')[0], day_type: dayType, started_at: new Date().toISOString() }).select().single();
     if (!session) return;
-    setActiveSession(session);
-    setSessionTimer(0);
-
-    // If template, pre-populate exercises
+    setActiveSession(session); setSessionTimer(0);
     if (template) {
       const entries: GymExerciseEntry[] = [];
       for (const te of template.exercises) {
         const exercise = exercises.find(e => e.id === te.exercise_id);
         if (!exercise) continue;
-
-        const { data: entry } = await supabase.from('gym_exercise_entries').insert({
-          session_id: session.id,
-          exercise_id: te.exercise_id,
-          order_index: te.order_index,
-        }).select().single();
-
-        if (entry) {
-          const lastSession = await getLastSession(te.exercise_id);
-          entries.push({ ...entry, exercise, sets: [], lastSession });
-        }
+        const { data: entry } = await supabase.from('gym_exercise_entries').insert({ session_id: session.id, exercise_id: te.exercise_id, order_index: te.order_index }).select().single();
+        if (entry) { const lastSession = await getLastSession(te.exercise_id); entries.push({ ...entry, exercise, sets: [], lastSession }); }
       }
       setSessionEntries(entries);
-    } else {
-      setSessionEntries([]);
-    }
-
+    } else { setSessionEntries([]); }
     setView('workout');
   };
 
-  // ========== GET LAST SESSION FOR EXERCISE ==========
   const getLastSession = async (exerciseId: string): Promise<{ date: string; sets: GymSet[] } | undefined> => {
-    // Find the most recent entry for this exercise (not in current session)
-    const { data: entries } = await supabase.from('gym_exercise_entries')
-      .select('id, session_id, gym_sessions!inner(date, user_id, id)')
-      .eq('exercise_id', exerciseId)
-      .eq('gym_sessions.user_id', user.id)
-      .order('gym_sessions(date)', { ascending: false })
-      .limit(5);
-
+    const { data: entries } = await supabase.from('gym_exercise_entries').select('id, session_id, gym_sessions!inner(date, user_id, id)').eq('exercise_id', exerciseId).eq('gym_sessions.user_id', user.id).order('gym_sessions(date)', { ascending: false }).limit(5);
     if (!entries || entries.length === 0) return undefined;
-
-    // Find first entry not from current session
-    const pastEntry = entries.find((e: any) =>
-      !activeSession || e.session_id !== activeSession.id
-    );
+    const pastEntry = entries.find((e: any) => !activeSession || e.session_id !== activeSession.id);
     if (!pastEntry) return undefined;
-
-    const { data: sets } = await supabase.from('gym_sets')
-      .select('*')
-      .eq('entry_id', pastEntry.id)
-      .order('set_index');
-
-    return {
-      date: (pastEntry as any).gym_sessions?.date || '',
-      sets: sets || [],
-    };
+    const { data: sets } = await supabase.from('gym_sets').select('*').eq('entry_id', pastEntry.id).order('set_index');
+    return { date: (pastEntry as any).gym_sessions?.date || '', sets: sets || [] };
   };
 
-  // ========== ADD EXERCISE TO SESSION ==========
   const addExercise = async (exercise: GymExercise) => {
     if (!activeSession) return;
-
-    const { data: entry } = await supabase.from('gym_exercise_entries').insert({
-      session_id: activeSession.id,
-      exercise_id: exercise.id,
-      order_index: sessionEntries.length,
-    }).select().single();
-
-    if (entry) {
-      const lastSession = await getLastSession(exercise.id);
-      setSessionEntries(prev => [...prev, { ...entry, exercise, sets: [], lastSession }]);
-    }
+    const { data: entry } = await supabase.from('gym_exercise_entries').insert({ session_id: activeSession.id, exercise_id: exercise.id, order_index: sessionEntries.length }).select().single();
+    if (entry) { const lastSession = await getLastSession(exercise.id); setSessionEntries(prev => [...prev, { ...entry, exercise, sets: [], lastSession }]); }
     setShowExercisePicker(false);
   };
 
-  // ========== ADD SET ==========
   const addSet = async (entryIndex: number) => {
     const entry = sessionEntries[entryIndex];
     if (!entry.id) return;
-
-    // Pre-fill from last session or previous set
-    let defaultWeight = 0;
-    let defaultReps = 0;
-    if (entry.sets.length > 0) {
-      const lastSet = entry.sets[entry.sets.length - 1];
-      defaultWeight = lastSet.weight;
-      defaultReps = lastSet.reps;
-    } else if (entry.lastSession && entry.lastSession.sets.length > 0) {
-      const lastTopSet = entry.lastSession.sets.reduce((max, s) => s.weight > max.weight ? s : max, entry.lastSession.sets[0]);
-      defaultWeight = lastTopSet.weight;
-      defaultReps = lastTopSet.reps;
-    }
-
-    const newSet: GymSet = {
-      set_index: entry.sets.length,
-      weight: defaultWeight,
-      reps: defaultReps,
-      is_warmup: false,
-    };
-
-    const { data: inserted } = await supabase.from('gym_sets').insert({
-      entry_id: entry.id,
-      ...newSet,
-    }).select().single();
-
-    if (inserted) {
-      setSessionEntries(prev => prev.map((e, i) =>
-        i === entryIndex ? { ...e, sets: [...e.sets, inserted] } : e
-      ));
-    }
+    let defaultWeight = 0, defaultReps = 0;
+    if (entry.sets.length > 0) { const lastSet = entry.sets[entry.sets.length - 1]; defaultWeight = lastSet.weight; defaultReps = lastSet.reps; }
+    else if (entry.lastSession && entry.lastSession.sets.length > 0) { const lastTopSet = entry.lastSession.sets.reduce((max, s) => s.weight > max.weight ? s : max, entry.lastSession.sets[0]); defaultWeight = lastTopSet.weight; defaultReps = lastTopSet.reps; }
+    const newSet: GymSet = { set_index: entry.sets.length, weight: defaultWeight, reps: defaultReps, is_warmup: false };
+    const { data: inserted } = await supabase.from('gym_sets').insert({ entry_id: entry.id, ...newSet }).select().single();
+    if (inserted) setSessionEntries(prev => prev.map((e, i) => i === entryIndex ? { ...e, sets: [...e.sets, inserted] } : e));
   };
 
-  // ========== UPDATE SET ==========
   const updateSet = async (entryIndex: number, setIndex: number, field: string, value: any) => {
-    const entry = sessionEntries[entryIndex];
-    const set = entry.sets[setIndex];
+    const set = sessionEntries[entryIndex].sets[setIndex];
     if (!set.id) return;
-
     await supabase.from('gym_sets').update({ [field]: value }).eq('id', set.id);
-
-    setSessionEntries(prev => prev.map((e, i) =>
-      i === entryIndex ? {
-        ...e,
-        sets: e.sets.map((s, j) => j === setIndex ? { ...s, [field]: value } : s)
-      } : e
-    ));
+    setSessionEntries(prev => prev.map((e, i) => i === entryIndex ? { ...e, sets: e.sets.map((s, j) => j === setIndex ? { ...s, [field]: value } : s) } : e));
   };
 
-  // ========== DELETE SET ==========
   const deleteSet = async (entryIndex: number, setIndex: number) => {
     const set = sessionEntries[entryIndex].sets[setIndex];
     if (!set.id) return;
     await supabase.from('gym_sets').delete().eq('id', set.id);
-    setSessionEntries(prev => prev.map((e, i) =>
-      i === entryIndex ? { ...e, sets: e.sets.filter((_, j) => j !== setIndex) } : e
-    ));
+    setSessionEntries(prev => prev.map((e, i) => i === entryIndex ? { ...e, sets: e.sets.filter((_, j) => j !== setIndex) } : e));
   };
 
-  // ========== FINISH WORKOUT ==========
-  // Save workout as draft (recent) — NOT yet in history
   const saveWorkout = async () => {
     if (!activeSession) return;
     const totalSetsLogged = sessionEntries.reduce((sum, e) => sum + e.sets.length, 0);
-    if (totalSetsLogged === 0) {
-      
-      await supabase.from('gym_sessions').delete().eq('id', activeSession.id);
-    } else {
-      // Save duration but DON'T set completed_at — keeps it as "draft/recent"
-      const duration = Math.round(sessionTimer / 60);
-      await supabase.from('gym_sessions').update({
-        duration_minutes: duration,
-      }).eq('id', activeSession.id);
-    }
-
-    if (timerInterval) clearInterval(timerInterval);
-    setTimerIntervalState(null);
-    setActiveSession(null);
-    setSessionEntries([]);
-    setView('home');
-    loadRecentSessions();
-    loadPastSessions();
+    if (totalSetsLogged === 0) { await supabase.from('gym_sessions').delete().eq('id', activeSession.id); }
+    else { await supabase.from('gym_sessions').update({ duration_minutes: Math.round(sessionTimer / 60) }).eq('id', activeSession.id); }
+    if (timerInterval) clearInterval(timerInterval); setTimerIntervalState(null);
+    setActiveSession(null); setSessionEntries([]); setView('home');
+    loadRecentSessions(); loadPastSessions();
   };
 
-  // Submit a draft session to history (confirm it)
   const submitToHistory = async (sessionId: string) => {
-    
-    await supabase.from('gym_sessions').update({
-      completed_at: new Date().toISOString(),
-    }).eq('id', sessionId);
-    loadRecentSessions();
-    loadPastSessions();
+    await supabase.from('gym_sessions').update({ completed_at: new Date().toISOString() }).eq('id', sessionId);
+    loadRecentSessions(); loadPastSessions();
   };
 
-  // Delete a draft or confirmed session
   const deleteGymSession = async (sessionId: string) => {
-    
     await supabase.from('gym_sessions').delete().eq('id', sessionId);
-    loadRecentSessions();
-    loadPastSessions();
-    if (viewingSession?.id === sessionId) {
-      setViewingSession(null);
-      setView('home');
-    }
+    loadRecentSessions(); loadPastSessions();
+    if (viewingSession?.id === sessionId) { setViewingSession(null); setView('home'); }
   };
 
   const discardWorkout = async () => {
     if (!activeSession) return;
-    
     await supabase.from('gym_sessions').delete().eq('id', activeSession.id);
-    if (timerInterval) clearInterval(timerInterval);
-    setTimerIntervalState(null);
-    setActiveSession(null);
-    setSessionEntries([]);
-    setView('home');
+    if (timerInterval) clearInterval(timerInterval); setTimerIntervalState(null);
+    setActiveSession(null); setSessionEntries([]); setView('home');
   };
 
-  // ========== SAVE AS TEMPLATE ==========
   const saveAsTemplate = async () => {
     if (!activeSession || sessionEntries.length === 0) return;
     const name = prompt(`Template name (e.g. "${activeSession.day_type} A"):`);
     if (!name) return;
-
-    const { data: template } = await supabase.from('gym_templates').insert({
-      user_id: user.id,
-      name,
-      day_type: activeSession.day_type,
-    }).select().single();
-
+    const { data: template } = await supabase.from('gym_templates').insert({ user_id: user.id, name, day_type: activeSession.day_type }).select().single();
     if (template) {
-      for (const entry of sessionEntries) {
-        await supabase.from('gym_template_exercises').insert({
-          template_id: template.id,
-          exercise_id: entry.exercise_id,
-          order_index: entry.order_index,
-        });
-      }
+      for (const entry of sessionEntries) { await supabase.from('gym_template_exercises').insert({ template_id: template.id, exercise_id: entry.exercise_id, order_index: entry.order_index }); }
       loadTemplates();
     }
   };
 
-  // ========== VIEW PAST SESSION ==========
   const viewSession = async (session: GymSession) => {
-    const { data: entries } = await supabase.from('gym_exercise_entries')
-      .select('*, gym_exercises(*)')
-      .eq('session_id', session.id)
-      .order('order_index');
-
+    const { data: entries } = await supabase.from('gym_exercise_entries').select('*, gym_exercises(*)').eq('session_id', session.id).order('order_index');
     if (entries) {
       const entriesWithSets: GymExerciseEntry[] = [];
       for (const entry of entries) {
-        const { data: sets } = await supabase.from('gym_sets')
-          .select('*')
-          .eq('entry_id', entry.id)
-          .order('set_index');
-        entriesWithSets.push({
-          ...entry,
-          exercise: entry.gym_exercises,
-          sets: sets || [],
-        });
+        const { data: sets } = await supabase.from('gym_sets').select('*').eq('entry_id', entry.id).order('set_index');
+        entriesWithSets.push({ ...entry, exercise: entry.gym_exercises, sets: sets || [] });
       }
-      setViewingSession(session);
-      setViewingEntries(entriesWithSets);
-      setView('session-detail');
+      setViewingSession(session); setViewingEntries(entriesWithSets); setView('session-detail');
     }
   };
 
-  // Format timer
-  const formatTimer = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
-  };
+  const formatTimer = (secs: number) => { const m = Math.floor(secs / 60); const s = secs % 60; return `${m}:${s.toString().padStart(2, '0')}`; };
+  const formatDate = (dateStr: string) => { const d = new Date(dateStr + 'T00:00:00'); const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`; };
 
   const dayTypeColors = {
-    Push: { bg: 'bg-red-500', light: 'bg-red-50', text: 'text-red-700', ring: 'ring-red-200' },
-    Pull: { bg: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-700', ring: 'ring-blue-200' },
-    Legs: { bg: 'bg-green-500', light: 'bg-green-50', text: 'text-green-700', ring: 'ring-green-200' },
+    Push: { bg: 'bg-black', light: 'bg-gray-100', text: 'text-gray-800', ring: 'ring-gray-300', huelBg: '#1a1a1a' },
+    Pull: { bg: 'bg-gray-800', light: 'bg-gray-100', text: 'text-gray-800', ring: 'ring-gray-300', huelBg: '#2a2a2a' },
+    Legs: { bg: 'bg-gray-700', light: 'bg-gray-100', text: 'text-gray-800', ring: 'ring-gray-300', huelBg: '#3a3a3a' },
   };
 
   const dayTypeImages: Record<string, string> = {
@@ -3165,24 +2794,17 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
     Legs: `${EXERCISE_IMG_BASE}/day-types/legs.jpg`,
   };
 
-  // ========================================================================
-  // HOME VIEW
-  // ========================================================================
   if (view === 'home') {
     const dayTypes: ('Push' | 'Pull' | 'Legs')[] = ['Push', 'Pull', 'Legs'];
-    const recentByType = dayTypes.map(dt => ({
-      type: dt,
-      last: pastSessions.find(s => s.day_type === dt),
-    }));
+    const recentByType = dayTypes.map(dt => ({ type: dt, last: pastSessions.find(s => s.day_type === dt) }));
 
     return (
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900">Gym</h2>
-          <button onClick={() => setView('history')} className="text-sm text-blue-600 font-semibold">History →</button>
+          <button onClick={() => setView('history')} className="text-sm font-semibold text-black hover:underline">History →</button>
         </div>
 
-        {/* Start Workout */}
         <div className="space-y-3">
           <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Start Workout</p>
           {dayTypes.map(dt => {
@@ -3191,14 +2813,11 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
             const dayTemplates = templates.filter(t => t.day_type === dt);
             return (
               <div key={dt} className={`bg-white rounded-xl shadow-sm overflow-hidden ring-1 ${c.ring}`}>
-                <button onClick={() => startWorkout(dt)}
-                  className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                <button onClick={() => startWorkout(dt)} className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
                   <img src={dayTypeImages[dt]} alt={dt} className="w-14 h-14 rounded-xl object-cover" />
                   <div className="flex-1 text-left">
                     <div className="font-bold text-gray-900">{dt} Day</div>
-                    <div className="text-xs text-gray-500">
-                      {last ? `Last: ${formatDate(last.date)}${last.duration_minutes ? ` • ${last.duration_minutes}min` : ''}` : 'No sessions yet'}
-                    </div>
+                    <div className="text-xs text-gray-500">{last ? `Last: ${formatDate(last.date)}${last.duration_minutes ? ` • ${last.duration_minutes}min` : ''}` : 'No sessions yet'}</div>
                   </div>
                   <div className="text-gray-300 text-xl">→</div>
                 </button>
@@ -3206,7 +2825,8 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
                   <div className="border-t px-4 py-2 flex gap-2 overflow-x-auto">
                     {dayTemplates.map(t => (
                       <button key={t.id} onClick={() => startWorkout(dt, t)}
-                        className={`${c.light} ${c.text} text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap hover:opacity-80`}>
+                        className="text-black text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap hover:opacity-80"
+                        style={{ backgroundColor: '#FFCB00' }}>
                         📋 {t.name}
                       </button>
                     ))}
@@ -3217,88 +2837,74 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
           })}
         </div>
 
-        {/* Recent (Draft) Workouts — not yet submitted to history */}
         {recentSessions.length > 0 && (
           <div>
             <p className="text-sm font-semibold text-amber-600 uppercase tracking-wide mb-2">📝 Recent Training (unsaved)</p>
-            {recentSessions.map(s => {
-              const c = dayTypeColors[s.day_type as keyof typeof dayTypeColors];
-              return (
-                <div key={s.id} className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg shadow-sm mb-2 ring-1 ring-amber-200">
-                  <img src={dayTypeImages[s.day_type as string] || ''} alt={s.day_type} className="w-10 h-10 rounded-lg object-cover" />
-                  <button onClick={() => viewSession(s)} className="flex-1 text-left">
-                    <div className="font-semibold text-sm">{s.day_type} Day</div>
-                    <div className="text-xs text-gray-500">{formatDate(s.date)}{s.duration_minutes ? ` • ${s.duration_minutes}min` : ''}</div>
-                  </button>
-                  <button onClick={() => submitToHistory(s.id!)} className="px-2 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-lg hover:bg-green-200">✅ Save</button>
-                  <button onClick={() => deleteGymSession(s.id!)} className="px-2 py-1.5 bg-red-50 text-red-400 text-xs font-bold rounded-lg hover:bg-red-100">🗑️</button>
-                </div>
-              );
-            })}
+            {recentSessions.map(s => (
+              <div key={s.id} className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg shadow-sm mb-2 ring-1 ring-amber-200">
+                <img src={dayTypeImages[s.day_type as string] || ''} alt={s.day_type} className="w-10 h-10 rounded-lg object-cover" />
+                <button onClick={() => viewSession(s)} className="flex-1 text-left">
+                  <div className="font-semibold text-sm">{s.day_type} Day</div>
+                  <div className="text-xs text-gray-500">{formatDate(s.date)}{s.duration_minutes ? ` • ${s.duration_minutes}min` : ''}</div>
+                </button>
+                <button onClick={() => submitToHistory(s.id!)} className="px-2 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-lg hover:bg-green-200">✅ Save</button>
+                <button onClick={() => deleteGymSession(s.id!)} className="px-2 py-1.5 bg-red-50 text-red-400 text-xs font-bold rounded-lg hover:bg-red-100">🗑️</button>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Confirmed History */}
         {pastSessions.length > 0 && (
           <div>
             <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">History</p>
-            {pastSessions.slice(0, 5).map(s => {
-              const c = dayTypeColors[s.day_type as keyof typeof dayTypeColors];
-              return (
-                <button key={s.id} onClick={() => viewSession(s)}
-                  className="w-full flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm mb-2 hover:bg-gray-50">
-                  <img src={dayTypeImages[s.day_type as string] || ''} alt={s.day_type} className="w-10 h-10 rounded-lg object-cover" />
-                  <div className="flex-1 text-left">
-                    <div className="font-semibold text-sm">{s.day_type} Day</div>
-                    <div className="text-xs text-gray-500">{formatDate(s.date)}</div>
-                  </div>
-                  {s.duration_minutes && <div className="text-xs text-gray-400">{s.duration_minutes}min</div>}
-                </button>
-              );
-            })}
+            {pastSessions.slice(0, 5).map(s => (
+              <button key={s.id} onClick={() => viewSession(s)} className="w-full flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm mb-2 hover:bg-gray-50">
+                <img src={dayTypeImages[s.day_type as string] || ''} alt={s.day_type} className="w-10 h-10 rounded-lg object-cover" />
+                <div className="flex-1 text-left">
+                  <div className="font-semibold text-sm">{s.day_type} Day</div>
+                  <div className="text-xs text-gray-500">{formatDate(s.date)}</div>
+                </div>
+                {s.duration_minutes && <div className="text-xs text-gray-400">{s.duration_minutes}min</div>}
+              </button>
+            ))}
           </div>
         )}
       </div>
     );
   }
 
-  // ========================================================================
-  // ACTIVE WORKOUT VIEW
-  // ========================================================================
   if (view === 'workout' && activeSession) {
-    const c = dayTypeColors[activeSession.day_type as keyof typeof dayTypeColors];
     const filteredExercises = exercises.filter(e => e.day_type === activeSession.day_type);
     const usedIds = sessionEntries.map(e => e.exercise_id);
     const availableExercises = filteredExercises.filter(e => !usedIds.includes(e.id));
 
     return (
       <div className="p-4 space-y-3 pb-24">
-        {/* Header */}
-        <div className={`${c.bg} text-white rounded-xl p-4`}>
+        <div className="bg-black text-white rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <button onClick={discardWorkout} className="flex items-center gap-1 text-sm opacity-80 hover:opacity-100">
+            <button onClick={discardWorkout} className="flex items-center gap-1 text-sm opacity-70 hover:opacity-100">
               <ArrowLeft size={16} /> Back
             </button>
-            <button onClick={saveWorkout} className="flex items-center gap-1 px-3 py-1.5 bg-white bg-opacity-20 rounded-lg text-sm font-bold hover:bg-opacity-30">
-              <Save size={14} /> Save Workout
+            <button onClick={saveWorkout}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-bold text-black hover:opacity-80"
+              style={{ backgroundColor: '#FFCB00' }}>
+              <Save size={14} /> Save
             </button>
           </div>
           <div className="flex items-center justify-between">
             <div>
               <div className="font-bold text-lg">{activeSession.day_type} Day</div>
-              <div className="text-sm opacity-80">{formatDate(activeSession.date)}</div>
+              <div className="text-sm opacity-60">{formatDate(activeSession.date)}</div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-mono font-bold">{formatTimer(sessionTimer)}</div>
-              <div className="text-xs opacity-70">{sessionEntries.length} exercises</div>
+              <div className="text-2xl font-mono font-bold" style={{ color: '#FFCB00' }}>{formatTimer(sessionTimer)}</div>
+              <div className="text-xs opacity-50">{sessionEntries.length} exercises</div>
             </div>
           </div>
         </div>
 
-        {/* Exercise Entries */}
         {sessionEntries.map((entry, entryIndex) => (
           <div key={entry.id || entryIndex} className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {/* Exercise header */}
             <button onClick={() => setExpandedEntry(expandedEntry === entry.id ? null : entry.id || null)}
               className="w-full p-3 flex items-center gap-3 hover:bg-gray-50">
               <ExerciseImage exercise={entry.exercise} size={36} />
@@ -3317,69 +2923,35 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
               <span className="text-gray-300">{expandedEntry === entry.id ? '▲' : '▼'}</span>
             </button>
 
-            {/* Expanded: Last time + sets */}
             {expandedEntry === entry.id && (
               <div className="border-t">
-                {/* Last time you did this */}
                 {entry.lastSession && (
                   <div className="bg-amber-50 px-3 py-2 border-b border-amber-100">
-                    <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wide mb-1">
-                      📊 Last time — {formatDate(entry.lastSession.date)}
-                    </div>
+                    <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wide mb-1">📊 Last time — {formatDate(entry.lastSession.date)}</div>
                     <div className="flex gap-3 flex-wrap">
                       {entry.lastSession.sets.map((s, i) => (
-                        <div key={i} className="text-xs text-amber-800">
-                          <span className="font-semibold">{s.weight}kg</span> × {s.reps}
-                          {s.rpe ? <span className="text-amber-500 ml-1">@{s.rpe}</span> : ''}
-                        </div>
+                        <div key={i} className="text-xs text-amber-800"><span className="font-semibold">{s.weight}kg</span> × {s.reps}{s.rpe ? <span className="text-amber-500 ml-1">@{s.rpe}</span> : ''}</div>
                       ))}
                     </div>
-                    {entry.lastSession.sets.length > 0 && (
-                      <div className="text-[10px] text-amber-600 mt-1">
-                        Top set: {Math.max(...entry.lastSession.sets.map(s => s.weight))}kg ×{' '}
-                        {entry.lastSession.sets.find(s => s.weight === Math.max(...entry.lastSession.sets.map(s => s.weight)))?.reps}
-                      </div>
-                    )}
                   </div>
                 )}
-
-                {/* Sets table */}
                 <div className="px-3 py-2">
                   {entry.sets.length > 0 && (
                     <div className="grid grid-cols-12 gap-1 text-[10px] text-gray-400 font-bold uppercase mb-1 px-1">
-                      <div className="col-span-1">#</div>
-                      <div className="col-span-4">Weight (kg)</div>
-                      <div className="col-span-3">Reps</div>
-                      <div className="col-span-2">RPE</div>
-                      <div className="col-span-2"></div>
+                      <div className="col-span-1">#</div><div className="col-span-4">Weight (kg)</div><div className="col-span-3">Reps</div><div className="col-span-2">RPE</div><div className="col-span-2"></div>
                     </div>
                   )}
                   {entry.sets.map((set, setIndex) => (
                     <div key={set.id || setIndex} className="grid grid-cols-12 gap-1 items-center mb-1">
                       <div className="col-span-1 text-xs text-gray-400 font-bold">{setIndex + 1}</div>
-                      <div className="col-span-4">
-                        <input type="number" value={set.weight || ''} step="0.5"
-                          onChange={(e) => updateSet(entryIndex, setIndex, 'weight', parseFloat(e.target.value) || 0)}
-                          className="w-full p-1.5 border rounded text-sm text-center font-semibold" />
-                      </div>
-                      <div className="col-span-3">
-                        <input type="number" value={set.reps || ''}
-                          onChange={(e) => updateSet(entryIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
-                          className="w-full p-1.5 border rounded text-sm text-center font-semibold" />
-                      </div>
-                      <div className="col-span-2">
-                        <input type="number" value={set.rpe || ''} step="0.5" min="1" max="10"
-                          onChange={(e) => updateSet(entryIndex, setIndex, 'rpe', parseFloat(e.target.value) || null)}
-                          className="w-full p-1.5 border rounded text-sm text-center text-gray-500" placeholder="—" />
-                      </div>
-                      <div className="col-span-2 text-right">
-                        <button onClick={() => deleteSet(entryIndex, setIndex)}
-                          className="text-red-300 hover:text-red-500 text-xs px-1">✕</button>
-                      </div>
+                      <div className="col-span-4"><input type="number" value={set.weight || ''} step="0.5" onChange={(e) => updateSet(entryIndex, setIndex, 'weight', parseFloat(e.target.value) || 0)} className="w-full p-1.5 border rounded text-sm text-center font-semibold" /></div>
+                      <div className="col-span-3"><input type="number" value={set.reps || ''} onChange={(e) => updateSet(entryIndex, setIndex, 'reps', parseInt(e.target.value) || 0)} className="w-full p-1.5 border rounded text-sm text-center font-semibold" /></div>
+                      <div className="col-span-2"><input type="number" value={set.rpe || ''} step="0.5" min="1" max="10" onChange={(e) => updateSet(entryIndex, setIndex, 'rpe', parseFloat(e.target.value) || null)} className="w-full p-1.5 border rounded text-sm text-center text-gray-500" placeholder="—" /></div>
+                      <div className="col-span-2 text-right"><button onClick={() => deleteSet(entryIndex, setIndex)} className="text-red-300 hover:text-red-500 text-xs px-1">✕</button></div>
                     </div>
                   ))}
                   <button onClick={() => addSet(entryIndex)}
-                    className="w-full mt-1 py-2 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 font-semibold hover:border-blue-300 hover:text-blue-500">
+                    className="w-full mt-1 py-2 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 font-semibold hover:border-gray-400 hover:text-gray-700">
                     + Add Set
                   </button>
                 </div>
@@ -3388,31 +2960,20 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
           </div>
         ))}
 
-        {/* Add Exercise Button */}
         <button onClick={() => setShowExercisePicker(true)}
-          className={`w-full py-3 ${c.light} ${c.text} rounded-xl font-bold text-sm hover:opacity-80`}>
+          className="w-full py-3 rounded-xl font-bold text-sm text-black hover:opacity-80"
+          style={{ backgroundColor: '#FFCB00' }}>
           + Add Exercise
         </button>
 
-        {/* Bottom Actions */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-3 flex gap-2" style={{ maxWidth: 480, margin: '0 auto' }}>
-          <button onClick={discardWorkout}
-            className="py-3 px-3 border border-red-200 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-50">
-            🗑️
-          </button>
-          <button onClick={saveAsTemplate}
-            className="py-3 px-3 border rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">
-            💾
-          </button>
-          <button onClick={saveWorkout}
-            className={`flex-1 py-3 ${c.bg} text-white rounded-xl text-sm font-bold hover:opacity-90`}>
-            💾 Save Workout
-          </button>
+          <button onClick={discardWorkout} className="py-3 px-3 border border-red-200 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-50">🗑️</button>
+          <button onClick={saveAsTemplate} className="py-3 px-3 border rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">💾</button>
+          <button onClick={saveWorkout} className="flex-1 py-3 bg-black text-white rounded-xl text-sm font-bold hover:bg-gray-900">💾 Save Workout</button>
         </div>
 
-        {/* Exercise Picker Modal */}
         {showExercisePicker && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end" onClick={() => setShowExercisePicker(false)}>
+          <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end" onClick={() => setShowExercisePicker(false)}>
             <div className="bg-white rounded-t-2xl w-full max-h-[70vh] overflow-y-auto" onClick={(e: any) => e.stopPropagation()}>
               <div className="sticky top-0 bg-white p-4 border-b">
                 <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
@@ -3421,8 +2982,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
               </div>
               <div className="p-2">
                 {availableExercises.map(ex => (
-                  <button key={ex.id} onClick={() => addExercise(ex)}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg">
+                  <button key={ex.id} onClick={() => addExercise(ex)} className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg">
                     <ExerciseImage exercise={ex} size={40} />
                     <div className="flex-1 text-left">
                       <div className="font-semibold text-sm">{ex.name}</div>
@@ -3441,53 +3001,31 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
     );
   }
 
-  // ========================================================================
-  // HISTORY VIEW
-  // ========================================================================
   if (view === 'history') {
-    // Group by month
     const grouped: Record<string, GymSession[]> = {};
-    pastSessions.forEach(s => {
-      const key = s.date.substring(0, 7); // YYYY-MM
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(s);
-    });
-
+    pastSessions.forEach(s => { const key = s.date.substring(0, 7); if (!grouped[key]) grouped[key] = []; grouped[key].push(s); });
     return (
       <div className="p-4 space-y-4">
         <div className="flex items-center gap-3">
           <button onClick={() => setView('home')} className="p-2 hover:bg-gray-100 rounded-lg">←</button>
           <h2 className="text-xl font-bold text-gray-900">Workout History</h2>
         </div>
-
         {Object.keys(grouped).length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <div className="text-4xl mb-3">🏋️</div>
-            <div className="font-semibold">No workouts yet</div>
-            <div className="text-sm">Start your first session!</div>
-          </div>
+          <div className="text-center py-12 text-gray-400"><div className="text-4xl mb-3">🏋️</div><div className="font-semibold">No workouts yet</div><div className="text-sm">Start your first session!</div></div>
         ) : (
           Object.entries(grouped).map(([month, sessions]) => {
             const d = new Date(month + '-01');
-            const monthName = d.toLocaleString('default', { month: 'long', year: 'numeric' });
             return (
               <div key={month}>
-                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{monthName}</p>
-                {sessions.map(s => {
-                  const c = dayTypeColors[s.day_type as keyof typeof dayTypeColors];
-                  return (
-                    <button key={s.id} onClick={() => viewSession(s)}
-                      className="w-full flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm mb-2 hover:bg-gray-50">
-                      <img src={dayTypeImages[s.day_type as string] || ''} alt={s.day_type} className="w-10 h-10 rounded-lg object-cover" />
-                      <div className="flex-1 text-left">
-                        <div className="font-semibold text-sm">{s.day_type} Day</div>
-                        <div className="text-xs text-gray-500">{formatDate(s.date)}</div>
-                      </div>
-                      {s.duration_minutes && <div className="text-xs text-gray-400">{s.duration_minutes}min</div>}
-                      <span className="text-gray-300">→</span>
-                    </button>
-                  );
-                })}
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{d.toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
+                {sessions.map(s => (
+                  <button key={s.id} onClick={() => viewSession(s)} className="w-full flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm mb-2 hover:bg-gray-50">
+                    <img src={dayTypeImages[s.day_type as string] || ''} alt={s.day_type} className="w-10 h-10 rounded-lg object-cover" />
+                    <div className="flex-1 text-left"><div className="font-semibold text-sm">{s.day_type} Day</div><div className="text-xs text-gray-500">{formatDate(s.date)}</div></div>
+                    {s.duration_minutes && <div className="text-xs text-gray-400">{s.duration_minutes}min</div>}
+                    <span className="text-gray-300">→</span>
+                  </button>
+                ))}
               </div>
             );
           })
@@ -3496,25 +3034,16 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
     );
   }
 
-  // ========================================================================
-  // SESSION DETAIL VIEW
-  // ========================================================================
-  // Delete a gym session
   const deleteSession = async (sessionId: string) => {
-    
     await supabase.from('gym_sessions').delete().eq('id', sessionId);
     setPastSessions(prev => prev.filter(s => s.id !== sessionId));
     setRecentSessions(prev => prev.filter(s => s.id !== sessionId));
-    setViewingSession(null);
-    setView('home');
+    setViewingSession(null); setView('home');
   };
 
   if (view === 'session-detail' && viewingSession) {
-    const c = dayTypeColors[viewingSession.day_type as keyof typeof dayTypeColors];
     const totalSets = viewingEntries.reduce((sum, e) => sum + e.sets.length, 0);
-    const totalVolume = viewingEntries.reduce((sum, e) =>
-      sum + e.sets.reduce((s, set) => s + set.weight * set.reps, 0), 0
-    );
+    const totalVolume = viewingEntries.reduce((sum, e) => sum + e.sets.reduce((s, set) => s + set.weight * set.reps, 0), 0);
 
     return (
       <div className="p-4 space-y-3">
@@ -3524,29 +3053,27 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
           <button onClick={() => deleteSession(viewingSession.id!)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-sm">🗑️</button>
         </div>
 
-        <div className={`${c.bg} text-white rounded-xl p-4`}>
+        <div className="bg-black text-white rounded-xl p-4">
           <div className="flex items-center gap-3">
             <img src={dayTypeImages[viewingSession.day_type] || ''} alt="" className="w-12 h-12 rounded-lg object-cover opacity-80" />
             <div>
               <div className="font-bold text-lg">{viewingSession.day_type} Day</div>
-              <div className="text-sm opacity-80">{formatDate(viewingSession.date)}</div>
+              <div className="text-sm opacity-60">{formatDate(viewingSession.date)}</div>
             </div>
           </div>
-          <div className="flex gap-4 mt-2 text-sm opacity-80">
+          <div className="flex gap-4 mt-2 text-sm opacity-70">
             {viewingSession.duration_minutes && <span>⏱ {viewingSession.duration_minutes}min</span>}
             <span>💪 {viewingEntries.length} exercises</span>
             <span>📊 {totalSets} sets</span>
           </div>
-          <div className="text-xs mt-1 opacity-60">Volume: {Math.round(totalVolume).toLocaleString()}kg</div>
-          {!viewingSession.completed_at && (
-            <div className="mt-2 text-xs text-amber-200">⚠️ Draft — not yet saved to history</div>
-          )}
+          <div className="text-xs mt-1 opacity-50">Volume: {Math.round(totalVolume).toLocaleString()}kg</div>
+          {!viewingSession.completed_at && <div className="mt-2 text-xs" style={{ color: '#FFCB00' }}>⚠️ Draft — not yet saved to history</div>}
         </div>
 
         {!viewingSession.completed_at && (
           <button onClick={() => submitToHistory(viewingSession.id!)}
-            className="w-full py-3 bg-green-500 text-white rounded-xl text-sm font-bold hover:bg-green-600">
-            ✅ Submit to History
+            className="w-full py-3 bg-black text-white rounded-xl text-sm font-bold hover:bg-gray-900">
+            <span style={{ color: '#FFCB00' }}>✅</span> Submit to History
           </button>
         )}
 
@@ -3554,10 +3081,7 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
           <div key={i} className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-3 flex items-center gap-3 border-b">
               <ExerciseImage exercise={entry.exercise} size={32} />
-              <div>
-                <div className="font-bold text-sm">{entry.exercise?.name}</div>
-                <EquipmentBadge equipment={entry.exercise?.equipment || ''} />
-              </div>
+              <div><div className="font-bold text-sm">{entry.exercise?.name}</div><EquipmentBadge equipment={entry.exercise?.equipment || ''} /></div>
             </div>
             <div className="px-3 py-2">
               {entry.sets.map((set, j) => (
@@ -3578,27 +3102,4 @@ const GymScreen = ({ supabase, user }: { supabase: any; user: any }) => {
   return null;
 };
 
-const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string; setActiveTab: (t: string) => void }) => (
-  <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-    <div className="grid grid-cols-7 gap-0.5 p-1.5">
-      {[
-        { id: 'home', icon: TrendingUp, label: 'Home' },
-        { id: 'calendar', icon: Calendar, label: 'Calendar' },
-        { id: 'log', icon: Plus, label: 'Log' },
-        { id: 'plan', icon: Target, label: 'Plan' },
-        { id: 'gym', icon: Dumbbell, label: 'Gym' },
-        { id: 'nutrition', icon: UtensilsCrossed, label: 'Food' },
-        { id: 'coach', icon: Brain, label: 'Coach' },
-      ].map(({ id, icon: Icon, label }) => (
-        <button key={id} onClick={() => setActiveTab(id)}
-          className={`flex flex-col items-center py-1.5 px-0.5 rounded ${activeTab === id ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}>
-          <Icon size={id === 'log' ? 22 : 18} />
-          <span className="text-[9px] mt-0.5">{label}</span>
-        </button>
-      ))}
-    </div>
-  </div>
-);
-
 export default ProFitAgentV5;
-
