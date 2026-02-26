@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, TrendingUp, Brain, Target, Plus, ChevronLeft, ChevronRight,
   X, User, Settings, LogOut, Loader, Check, AlertTriangle, Sun, Moon, Send, RefreshCw, UtensilsCrossed, Lock, Edit3, Save,
-  Smartphone, Copy, Flag, Award, MessageCircle, Palette, ChevronDown, Dumbbell, ArrowLeft, Trash2
+  Smartphone, Copy, Flag, Award, MessageCircle, Palette, ChevronDown, Dumbbell, ArrowLeft, Trash2, ShoppingBag, Trophy
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
@@ -558,10 +558,9 @@ const ProFitAgentV5 = () => {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-center">
-          <div className="mb-6">
-            {/* Huel wordmark */}
-            <span className="text-4xl font-black tracking-tight" style={{ color: '#FFCB00' }}>Huel</span>
-            <span className="text-4xl font-black tracking-tight text-white ml-2">Fit</span>
+          <div className="mb-6 flex flex-col items-center">
+            <img src="/huel-logo.png" alt="Huel" className="h-16 w-auto mb-2" />
+            <span className="text-xl font-black tracking-tight text-white">Fit</span>
           </div>
           <Loader className="animate-spin mx-auto mb-4" size={36} style={{ color: '#FFCB00' }} />
           <p className="text-lg font-bold">{userName ? `Welcome back, ${userName}!` : 'Loading...'}</p>
@@ -589,6 +588,7 @@ const ProFitAgentV5 = () => {
           {activeScreen === 'coach' && <CoachScreen onboarding={onboardingData} plan={plan} plannedSessions={plannedSessions} setPlannedSessions={setPlannedSessions} trainingSessions={trainingSessions} bodyMetrics={bodyMetrics} />}
           {activeScreen === 'nutrition' && <NutritionScreen onboarding={onboardingData} plan={plan} trainingSessions={trainingSessions} />}
           {activeScreen === 'gym' && <GymScreen supabase={supabase} user={user} />}
+          {activeScreen === 'leaderboard' && <LeaderboardScreen />}
           {activeScreen === 'account' && <AccountScreen user={user} onboarding={onboardingData} setOnboarding={setOnboardingData} setActiveScreen={setActiveScreen} />}
         </div>
         <BottomNav activeTab={activeScreen} setActiveTab={setActiveScreen} />
@@ -917,7 +917,7 @@ const Header = ({ user, showMenu, setShowMenu, onLogout, onNavigate, userPrefs, 
       <div className="bg-black text-white p-4 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-black tracking-tight text-white">Huel</span>
+            <img src="/huel-logo.png" alt="Huel" className="h-8 w-auto" />
             <span className="text-2xl font-black tracking-tight" style={{ color: '#FFCB00' }}>Fit</span>
           </div>
           <button onClick={() => setShowMenu(!showMenu)}
@@ -2506,9 +2506,64 @@ const NutritionScreen = ({ onboarding, plan, trainingSessions }: any) => {
 // BOTTOM NAV
 // ============================================================================
 
+
+// ============================================================================
+// LEADERBOARD SCREEN
+// ============================================================================
+
+const LeaderboardScreen = () => (
+  <div className="min-h-screen bg-gray-50 pb-24">
+    {/* Header */}
+    <div className="bg-black text-white px-4 py-6">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FFCB00' }}>
+          <Trophy size={20} className="text-black" />
+        </div>
+        <div>
+          <h1 className="text-xl font-black text-white">Leaderboard</h1>
+          <p className="text-xs opacity-60">Compete with the Huel community</p>
+        </div>
+      </div>
+    </div>
+
+    {/* Coming Soon */}
+    <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+      <div className="w-24 h-24 rounded-full bg-black flex items-center justify-center mb-6 shadow-lg">
+        <Trophy size={44} style={{ color: '#FFCB00' }} />
+      </div>
+      <h2 className="text-2xl font-black text-gray-900 mb-3">Coming Soon</h2>
+      <p className="text-gray-500 text-sm max-w-xs mb-8">
+        The Huel Fit leaderboard is on its way. Compete with athletes worldwide, track your rank, and earn badges for your training achievements.
+      </p>
+
+      {/* Preview cards */}
+      <div className="w-full max-w-sm space-y-3">
+        {[
+          { rank: 1, name: 'Alex M.', points: '2,840 pts', emoji: '🥇', badge: 'Elite' },
+          { rank: 2, name: 'Sarah K.', points: '2,610 pts', emoji: '🥈', badge: 'Pro' },
+          { rank: 3, name: 'You?', points: '???', emoji: '🥉', badge: '—' },
+        ].map(({ rank, name, points, emoji, badge }) => (
+          <div key={rank} className={`flex items-center gap-4 p-4 rounded-xl shadow-sm ${rank === 3 ? 'border-2 border-dashed border-gray-300 bg-white opacity-50' : 'bg-white'}`}>
+            <span className="text-2xl">{emoji}</span>
+            <div className="flex-1 text-left">
+              <div className="font-bold text-gray-900 text-sm">{name}</div>
+              <div className="text-xs text-gray-500">{points}</div>
+            </div>
+            <span className="text-xs font-bold px-2 py-1 rounded-full bg-black text-white">{badge}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 px-5 py-3 rounded-full bg-black text-white text-sm font-bold flex items-center gap-2">
+        <span style={{ color: '#FFCB00' }}>★</span> Notify me when it launches
+      </div>
+    </div>
+  </div>
+);
+
 const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string; setActiveTab: (t: string) => void }) => (
   <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-    <div className="grid grid-cols-7 gap-0.5 p-1.5">
+    <div className="grid grid-cols-9 gap-0.5 p-1.5">
       {[
         { id: 'home', icon: TrendingUp, label: 'Home' },
         { id: 'calendar', icon: Calendar, label: 'Calendar' },
@@ -2517,12 +2572,17 @@ const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string; setActiveTa
         { id: 'gym', icon: Dumbbell, label: 'Gym' },
         { id: 'nutrition', icon: UtensilsCrossed, label: 'Food' },
         { id: 'coach', icon: Brain, label: 'Coach' },
+        { id: 'leaderboard', icon: Trophy, label: 'Ranks' },
+        { id: 'shop', icon: ShoppingBag, label: 'Shop' },
       ].map(({ id, icon: Icon, label }) => (
-        <button key={id} onClick={() => setActiveTab(id)}
+        <button key={id} onClick={() => {
+          if (id === 'shop') { window.open('https://uk.huel.com/', '_blank'); return; }
+          setActiveTab(id);
+        }}
           className={`flex flex-col items-center py-1.5 px-0.5 rounded transition-colors ${activeTab === id ? 'text-black' : 'text-gray-500'}`}
-          style={activeTab === id ? { backgroundColor: '#FFCB00' } : {}}>
+          style={activeTab === id ? { backgroundColor: '#FFCB00' } : id === 'shop' ? { backgroundColor: '#000', color: '#FFCB00', borderRadius: '6px' } : {}}>
           <Icon size={id === 'log' ? 22 : 18} />
-          <span className="text-[9px] mt-0.5">{label}</span>
+          <span className="text-[9px] mt-0.5" style={id === 'shop' ? { color: '#FFCB00' } : {}}>{label}</span>
         </button>
       ))}
     </div>
